@@ -95,7 +95,12 @@ class omniqubo:
 
 
     def is_hobo(self):
-        raise NotImplementedError()
+        if len(self.model.list_constraints()) > 0:
+            return False
+        if not all(isinstance(v, BitVar) for v in self.variables):
+            return False
+        return self.model.objective.is_polynomial()
+        
     
     def is_linear_integer_programming(self):
         raise NotImplementedError()

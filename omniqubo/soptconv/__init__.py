@@ -1,1 +1,2 @@
-from .converter import convert_to_sympyopt
+from .converter import ConvertToSymoptAbs
+from .docplex_to_sympyopt import DocplexToSymoptAbs

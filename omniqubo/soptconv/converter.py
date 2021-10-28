@@ -1,6 +1,11 @@
 from sympyopt import SympyOpt
-from copy import deepcopy
 
-def convert_to_sympyopt(model):
-    if isinstance(model, SympyOpt):
-        return deepcopy(model)
+class ConvertToSymoptAbs:
+    def __init__(self) -> None:
+        pass
+
+    def convert(self, model) -> SympyOpt:
+        raise NotImplementedError
+
+    def can_convert(self, model) -> bool:
+        raise NotImplementedError

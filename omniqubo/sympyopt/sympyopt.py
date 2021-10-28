@@ -59,10 +59,16 @@ class SympyOpt:
             raise ValueError(f"Constraint {name} does not exist")
         return self.constraints[name].pop(name)
     
-    def get_var_list(self):
-        raise NotImplementedError()
+    def get_variable(self, name=None):
+        if name == None:
+            return self.variables
+        else:
+            return self.variables[name]
 
-    def int_var(self, name, ub:int=None, lb:int=None):
+    def get_var(self, name=None):
+        return self.get_variables(name)
+
+    def int_var(self, name, lb:int=None, ub:int=None):
         assert ub > lb
         if name in self.variables.keys():
             raise ValueError(f"Variable {name} already exists")
