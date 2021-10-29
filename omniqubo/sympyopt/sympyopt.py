@@ -1,12 +1,11 @@
 from sympy import S
+
 from .constraints import *
 from .utils import gen_random_str
 from .vars import *
 
-
 SYMPYOPT_MIN_SENSE = "min"
 SYMPYOPT_MAX_SENSE = "max"
-
 
 
 class SympyOpt:
@@ -19,19 +18,20 @@ class SympyOpt:
     def _set_objective(self, obj):
         unknown_vars = _list_unknown_vars(obj, self.variables.keys())
         if len(unknown_vars) != 0:
-            return AssertionError(f"Variables {unknown_vars} uknown. Use SympyOpt methods to define variables")
+            return AssertionError(
+                f"Variables {unknown_vars} uknown. Use SympyOpt methods to define variables"
+            )
         self.objective = obj
-
 
     def minimize(self, obj):
         self.sense = SYMPYOPT_MIN_SENSE
         self._set_objective(obj)
-        
+
     def maximize(self, obj):
         self.sense = SYMPYOPT_MAX_SENSE
         self._set_objective(obj)
 
-    def add_constraint(self, constr: ConstraintAbs, name: str=None):
+    def add_constraint(self, constr: ConstraintAbs, name: str = None):
         if name in self.constraints.keys():
             raise ValueError(f"Constraint {name} already exists")
         if name == None:
@@ -40,7 +40,9 @@ class SympyOpt:
                 name = gen_random_str()
         unknown_vars = constr._list_unknown_vars(self.variables.keys())
         if len(unknown_vars) != 0:
-            return AssertionError(f"Variables {unknown_vars} uknown. Use SympyOpt methods to define variables")
+            return AssertionError(
+                f"Variables {unknown_vars} uknown. Use SympyOpt methods to define variables"
+            )
         self.constraints[name] = constr
 
     def list_constraints(self):
@@ -58,7 +60,7 @@ class SympyOpt:
         if name not in self.constraints.keys():
             raise ValueError(f"Constraint {name} does not exist")
         return self.constraints[name].pop(name)
-    
+
     def get_variable(self, name=None):
         if name == None:
             return self.variables
@@ -68,7 +70,7 @@ class SympyOpt:
     def get_var(self, name=None):
         return self.get_variables(name)
 
-    def int_var(self, name, lb:int=None, ub:int=None):
+    def int_var(self, name, lb: int = None, ub: int = None):
         assert ub > lb
         if name in self.variables.keys():
             raise ValueError(f"Variable {name} already exists")
@@ -76,7 +78,7 @@ class SympyOpt:
         self.variables[name] = var
         return var.var
 
-    def real_var(self, name, ub:int=None, lb:int=None):
+    def real_var(self, name, ub: int = None, lb: int = None):
         raise NotImplementedError("Planned at later versions")
         assert ub > lb
         if name in self.variables.keys():
@@ -85,7 +87,6 @@ class SympyOpt:
         self.variables[name] = var
         return var.var
 
-    
     def bit_var(self, name):
         if name in self.variables.keys():
             raise ValueError(f"Variable {name} already exists")
@@ -99,14 +100,3 @@ class SympyOpt:
         var = SpinVar(name)
         self.variables[name] = var
         return var.var
-    
-
-
-
-
-
-
-
-
-
-

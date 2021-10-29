@@ -1,5 +1,6 @@
 from sympyopt import SympyOpt
 
+
 class ConvertToSymoptAbs:
     def __init__(self) -> None:
         pass

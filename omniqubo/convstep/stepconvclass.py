@@ -4,8 +4,6 @@ class StepConvAbs:
 
     def interpret(self, sample):
         raise NotImplementedError()
-    
+
     def convert(self, model):
         raise NotImplementedError()
-
-

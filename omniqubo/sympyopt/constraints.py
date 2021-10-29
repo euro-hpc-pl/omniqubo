@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+
 def _list_unknown_vars(obj, vars):
     return filter(lambda v: v not in vars, obj.free_symbols)
 
@@ -17,14 +18,12 @@ class ConstraintAbs:
         return False
 
     def is_type_constraint(self):
-        return False 
+        return False
 
     def _list_unknown_vars(self, vars):
         lvars_uknown = _list_unknown_vars(self.exprleft, vars)
-        rvars_uknown = _list_unknown_vars(self.exprleft, vars)     
+        rvars_uknown = _list_unknown_vars(self.exprleft, vars)
         return list(lvars_uknown) + list(rvars_uknown)
-        
-
 
 
 class ConstraintEq(ConstraintAbs):
@@ -35,8 +34,10 @@ class ConstraintEq(ConstraintAbs):
     def is_eq_constraint(self):
         True
 
+
 INEQ_LEQ_SENSE = "leq"
 INEQ_GEQ_SENSE = "geq"
+
 
 class ConstraintIneq(ConstraintAbs):
     def __init__(self, exprleft, exprright, sense):
@@ -48,4 +49,3 @@ class ConstraintIneq(ConstraintAbs):
 
     def is_ineq_constraint(self):
         True
-
