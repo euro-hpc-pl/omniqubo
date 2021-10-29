@@ -1,8 +1,8 @@
 from sympy import S
 
-from .constraints import *
+from .constraints import ConstraintAbs, _list_unknown_vars
 from .utils import gen_random_str
-from .vars import *
+from .vars import BitVar, IntVar, RealVar, SpinVar
 
 SYMPYOPT_MIN_SENSE = "min"
 SYMPYOPT_MAX_SENSE = "max"
@@ -34,8 +34,9 @@ class SympyOpt:
     def add_constraint(self, constr: ConstraintAbs, name: str = None):
         if name in self.constraints.keys():
             raise ValueError(f"Constraint {name} already exists")
-        if name == None:
-            # TODO: (optional) function may check the probability of getting string, and if needed increase the name length
+        if name is None:
+            # TODO: (optional) function may check the probability of getting string,
+            # and if needed increase the name length
             while name not in self.constraints.keys():
                 name = gen_random_str()
         unknown_vars = constr._list_unknown_vars(self.variables.keys())
@@ -62,7 +63,7 @@ class SympyOpt:
         return self.constraints[name].pop(name)
 
     def get_variable(self, name=None):
-        if name == None:
+        if name is None:
             return self.variables
         else:
             return self.variables[name]

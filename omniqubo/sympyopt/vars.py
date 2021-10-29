@@ -10,9 +10,9 @@ class VarAbs:
 
 class IntVar(VarAbs):
     def __init__(self, name: str, lb: int = None, ub: int = None) -> None:
-        if lb == None:
+        if lb is None:
             lb = -INF
-        if ub == None:
+        if ub is None:
             ub = INF
         assert lb < ub
         self.lb = lb
@@ -22,9 +22,9 @@ class IntVar(VarAbs):
 
 class RealVar(VarAbs):
     def __init__(self, name: str, lb: int = None, ub: int = None) -> None:
-        if lb == None:
+        if lb is None:
             lb = -INF
-        if ub == None:
+        if ub is None:
             ub = INF
         assert lb < ub
         self.lb = lb

@@ -1,10 +1,9 @@
-import sympy
 from docplex.mp.dvar import Var
 from docplex.mp.linear import ConstantExpr, LinearExpr, MonomialExpr, ZeroExpr
 from docplex.mp.model import Model
 from docplex.mp.quad import QuadExpr
 from sympy import S
-from sympyopt import SYMPYOPT_MAX_SENSE, SYMPYOPT_MIN_SENSE, SympyOpt
+from sympyopt import SympyOpt
 
 from .converter import ConvertToSymoptAbs
 

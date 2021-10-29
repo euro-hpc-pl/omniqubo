@@ -2,7 +2,6 @@ from copy import deepcopy
 
 from soptconv import convert_to_sympyopt
 from sympy import S, Symbol, core, expand, total_degree
-from sympy.utilities.iterables import variations
 from sympyopt.vars import BitVar, SpinVar
 
 
@@ -21,7 +20,7 @@ class Omniqubo:
             self.model_logs.append(deepcopy(self.model))
         return self.model
 
-    def interpret(self, samples):
+    def interpret(self, samples, general_form=True):
         raise NotImplementedError()
 
     def to_qubo(self):
@@ -31,9 +30,6 @@ class Omniqubo:
         raise NotImplementedError()
 
     def export(self, mode: str):
-        raise NotImplementedError()
-
-    def interpret(self, general_form=True):
         raise NotImplementedError()
 
     def _bitspin_polysimp_rec(self, expr, vars=None, mode="bit"):
@@ -46,12 +42,12 @@ class Omniqubo:
             varname = expr.base.__name__
             var = self.model.variables[varname]
             if (
-                vars == None
+                vars is None
                 and not isinstance(var, BitVar)
                 and not isinstance(var, SpinVar)
             ):
                 return expr
-            if vars != None and var not in vars:
+            if vars is not None and var not in vars:
                 return expr
 
             if mode == "bit":
