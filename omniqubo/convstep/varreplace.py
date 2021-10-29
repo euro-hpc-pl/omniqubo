@@ -1,29 +1,31 @@
+from typing import List
+
+from sympy import Expr
 from sympy.core.evalf import INF
-from sympyopt import SympyOpt
-from sympyopt.constraints import ConstraintEq
+from sympyopt import SympyOpt, VarInt
 
 from .stepconvclass import StepConvAbs
 
 
 class VarReplace(StepConvAbs):
-    def __init__(self, var: str):
+    def __init__(self, var: VarInt) -> None:
         if var.lb:
             assert var.lb > -INF
         if var.ub:
             assert var.ub < INF
         self.var = var
 
-    def _get_bits_names(self):
+    def _get_bits_names(self) -> List[str]:
         raise NotImplementedError()
 
-    def _get_expression(self, bits=None):
+    def _get_expression(self, bits: List[str]) -> Expr:
         raise NotImplementedError()
 
-    def _add_constraints(self, model):
+    def _add_constraints(self, model: SympyOpt) -> None:
         # Keep the error as lack of constraints is rare
         raise NotImplementedError()
 
-    def convert(self, model: SympyOpt):
+    def convert(self, model: SympyOpt) -> SympyOpt:
         name = self.var.name
 
         # remove and add variables
@@ -41,31 +43,36 @@ class VarReplace(StepConvAbs):
             model.constraints[cname].subs(self.var.var, expr)
 
         # add constraints
-        self._add_constraints(model, bits)
+        self._add_constraints(model)
         return model
 
 
-class VarOneHot(VarReplace):
-    def _get_bits_names(self):
-        lb, ub = self.var.lb, self.var.ub
-        return [self.var.name + "@{i}" for i in range(lb, ub + 1)]
+# class VarOneHot(VarReplace):
+#     def _get_bits_names(self) -> List[str]:
+#         raise NotImplementedError
+#         lb, ub = self.var.lb, self.var.ub
+#         return [self.var.name + "@{i}" for i in range(lb, ub + 1)]
 
-    def _get_expression(self, bits=None):
-        lb, ub = self.var.lb, self.var.ub
-        raise sum(val * b for b, val in zip(bits, range(lb, ub + 1)))
+#     def _get_expression(self, bits) -> Expr:
+#         raise NotImplementedError
+#         # lb, ub = self.var.lb, self.var.ub
+#         # raise sum(val * b for b, val in zip(range(lb, ub + 1)))
 
-    def _add_constraints(self, model: SympyOpt, bits):
-        c = ConstraintEq(sum(bits), 1)
-        model.add_constraint(c, self.varname + "_onehot")
+#     def _add_constraints(self, model: SympyOpt) -> None:
+#         raise NotImplementedError
+#         c = ConstraintEq(sum(bits), 1)
+#         model.add_constraint(c, self.varname + "_onehot")
 
 
-class VarUnary(VarReplace):
-    def _get_bits_names(self):
-        lb, ub = self.var.lb, self.var.ub
-        return [self.var.name + "@{i}" for i in range(lb, ub + 1)]
+# class VarUnary(VarReplace):
+#     def _get_bits_names(self) -> List[str]:
+#         raise NotImplementedError
+#         lb, ub = self.var.lb, self.var.ub
+#         return [self.var.name + "@{i}" for i in range(lb, ub + 1)]
 
-    def _get_expression(self, bits=None):
-        raise self.var.lb + sum(b for b in bits)
+#     def _get_expression(self) -> Expr:
+#         raise NotImplementedError
+#         raise self.var.lb + sum(b for b in bits)
 
-    def _add_constraints(self, model: SympyOpt, bits):
-        pass
+#     def _add_constraints(self, model: SympyOpt) -> None:
+#         pass

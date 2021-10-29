@@ -1,16 +1,18 @@
 from copy import deepcopy
+from typing import List
 
+from convstep import StepConvAbs
 from soptconv import convert_to_sympyopt
 from sympy import S, Symbol, core, expand, total_degree
-from sympyopt.vars import BitVar, SpinVar
+from sympyopt import BitVar, SpinVar, SympyOpt
 
 
 class Omniqubo:
     def __init__(self, model, verbatim_logs=False) -> None:
         self.orig_model = deepcopy(model)
         self.model = convert_to_sympyopt(self.orig_model)
-        self.logs = []
-        self.model_logs = []
+        self.logs = []  # type: List[StepConvAbs]
+        self.model_logs = []  # type: List[SympyOpt]
         self.verbatim_logs = verbatim_logs
 
     def _convert(self, convstep):

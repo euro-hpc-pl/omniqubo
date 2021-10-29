@@ -9,11 +9,7 @@ class VarAbs:
 
 
 class IntVar(VarAbs):
-    def __init__(self, name: str, lb: int = None, ub: int = None) -> None:
-        if lb is None:
-            lb = -INF
-        if ub is None:
-            ub = INF
+    def __init__(self, name: str, lb: int, ub: int) -> None:
         assert lb < ub
         self.lb = lb
         self.ub = ub

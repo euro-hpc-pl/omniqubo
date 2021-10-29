@@ -12,7 +12,7 @@ class DocplexToSymoptAbs(ConvertToSymoptAbs):
     def _add_constraints(self, model: Model, sympyopt: SympyOpt):
         raise NotImplementedError
 
-    def _add_objective(self, model: Model, sympyopt: SympyOpt):
+    def _add_objective(self, model: Model, sympyopt: SympyOpt) -> None:
         obj = model.objective_expr
         expr = S(0)
 
@@ -46,7 +46,6 @@ class DocplexToSymoptAbs(ConvertToSymoptAbs):
             sympyopt.minimize(expr)
         else:
             sympyopt.maximize(expr)
-        return sympyopt
 
     def _add_variables(self, model: Model, sympyopt: SympyOpt):
         vars = model._vars_by_name
@@ -79,7 +78,7 @@ class DocplexToSymoptAbs(ConvertToSymoptAbs):
         return sympyopt
 
     def can_convert(self, model: Model) -> bool:
-        for var in vars.values():
+        for var in model._vars_by_name.values():
             if var.cplex_typecode in "SNC":
                 return False
         # TODO check the constraints
