@@ -2,6 +2,7 @@ from typing import Dict
 
 from sympy import Expr, S
 from sympy.core.evalf import INF
+from sympy.core.sympify import sympify
 
 from .constraints import ConstraintAbs, _list_unknown_vars
 from .utils import gen_random_str
@@ -19,7 +20,9 @@ class SympyOpt:
         self.variables = dict()  # type: Dict[str,VarAbs]
 
     def _set_objective(self, obj: Expr) -> None:
-        unknown_vars = _list_unknown_vars(obj, self.variables.keys())
+        if not isinstance(obj, Expr):
+            obj = S(obj)
+        unknown_vars = list(_list_unknown_vars(obj, self.variables.keys()))
         if unknown_vars:
             raise AssertionError(
                 f"Variables {unknown_vars} uknown. Use SympyOpt methods to define variables"
@@ -116,3 +119,11 @@ class SympyOpt:
         var = SpinVar(name)
         self.variables[name] = var
         return var.var
+
+    def __eq__(self, model2) -> bool:
+        if self.sense != model2.sense:
+            return False
+        if sympify(self.objective - model2.objective) != 0:
+            return False
+        # TODO implement constraints
+        return True

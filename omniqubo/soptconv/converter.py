@@ -1,4 +1,4 @@
-from sympyopt import SympyOpt
+from ..sympyopt import SympyOpt
 
 
 class ConvertToSymoptAbs:

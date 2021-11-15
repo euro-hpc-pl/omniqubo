@@ -3,14 +3,14 @@ from docplex.mp.linear import ConstantExpr, LinearExpr, MonomialExpr, ZeroExpr
 from docplex.mp.model import Model
 from docplex.mp.quad import QuadExpr
 from sympy import S
-from sympyopt import SympyOpt
+from ..sympyopt import SympyOpt
 
 from .converter import ConvertToSymoptAbs
 
 
-class DocplexToSymoptAbs(ConvertToSymoptAbs):
+class DocplexToSymopt(ConvertToSymoptAbs):
     def _add_constraints(self, model: Model, sympyopt: SympyOpt):
-        raise NotImplementedError
+        pass
 
     def _add_objective(self, model: Model, sympyopt: SympyOpt) -> None:
         obj = model.objective_expr
