@@ -1,6 +1,6 @@
 name: Run tests and other quality checks
 
-on: [pull_request]
+on: [push]
 
 jobs:
   run_tests:
