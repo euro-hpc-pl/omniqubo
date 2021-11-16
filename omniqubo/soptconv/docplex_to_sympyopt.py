@@ -1,22 +1,49 @@
+import sympy
+from docplex.mp.basic import Expr
+from docplex.mp.constr import ComparisonType, LinearConstraint, QuadraticConstraint
 from docplex.mp.dvar import Var
 from docplex.mp.linear import ConstantExpr, LinearExpr, MonomialExpr, ZeroExpr
 from docplex.mp.model import Model
 from docplex.mp.quad import QuadExpr
-from sympy import S
 
-from ..sympyopt import SympyOpt
+from ..sympyopt import (
+    INEQ_GEQ_SENSE,
+    INEQ_LEQ_SENSE,
+    ConstraintEq,
+    ConstraintIneq,
+    SympyOpt,
+)
 from .converter import ConvertToSymoptAbs
 
 
 class DocplexToSymopt(ConvertToSymoptAbs):
     def _add_constraints(self, model: Model, sympyopt: SympyOpt):
-        pass
+        for cstr in model.iter_constraints():
+            if isinstance(cstr, LinearConstraint) or isinstance(
+                cstr, QuadraticConstraint
+            ):
+                name = cstr.name
+                sense = cstr.sense
+                left = self._get_expr(cstr.left_expr, sympyopt)
+                right = self._get_expr(cstr.right_expr, sympyopt)
+                if sense == ComparisonType.EQ:
+                    sympyopt.add_constraint(ConstraintEq(left, right), name=name)
+                elif sense == ComparisonType.GE:
+                    sympyopt.add_constraint(
+                        ConstraintIneq(left, right, INEQ_GEQ_SENSE), name=name
+                    )
+                elif sense == ComparisonType.LE:
+                    sympyopt.add_constraint(
+                        ConstraintIneq(left, right, INEQ_LEQ_SENSE), name=name
+                    )
+                else:
+                    ValueError(f"Unknown sense {sense}")
 
-    def _add_objective(self, model: Model, sympyopt: SympyOpt) -> None:
-        obj = model.objective_expr
-        expr = S(0)
+            else:
+                ValueError(f"Constraint type {type(cstr)} not implemented")
 
-        # create expression
+    def _get_expr(self, obj: Expr, sympyopt: SympyOpt) -> sympy.Expr:
+        expr = sympy.S(0)
         if isinstance(obj, ZeroExpr):
             pass
         elif isinstance(obj, ConstantExpr):
@@ -30,9 +57,9 @@ class DocplexToSymopt(ConvertToSymoptAbs):
                 expr += val * sympyopt.get_var(var.name)
             expr += obj._constant
         elif isinstance(obj, QuadExpr):
-            for vars_pair, val in obj._quadterms:
-                var1 = sympyopt.get_var(vars_pair.first.name)
-                var2 = sympyopt.get_var(vars_pair.second.name)
+            for (first, sec), val in obj._quadterms.items():
+                var1 = sympyopt.get_var(first.name)
+                var2 = sympyopt.get_var(sec.name)
                 expr += val * var1 * var2
             for var, val in obj._linexpr._terms.items():
                 expr += val * sympyopt.get_var(var.name)
@@ -41,7 +68,11 @@ class DocplexToSymopt(ConvertToSymoptAbs):
             raise ValueError(
                 f"New objective type {type(obj)}, {obj}. Please contact authors"
             )
+        return expr
 
+    def _add_objective(self, model: Model, sympyopt: SympyOpt) -> None:
+        obj = model.objective_expr
+        expr = self._get_expr(obj, sympyopt)
         if model.is_minimized():
             sympyopt.minimize(expr)
         else:

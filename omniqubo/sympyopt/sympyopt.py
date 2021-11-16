@@ -1,8 +1,7 @@
 from typing import Dict
 
-from sympy import Expr, S
+from sympy import Expr, S, Symbol, expand
 from sympy.core.evalf import INF
-from sympy.core.sympify import sympify
 
 from .constraints import ConstraintAbs, _list_unknown_vars
 from .utils import gen_random_str
@@ -22,6 +21,7 @@ class SympyOpt:
     def _set_objective(self, obj: Expr) -> None:
         if not isinstance(obj, Expr):
             obj = S(obj)
+
         unknown_vars = list(_list_unknown_vars(obj, self.variables.keys()))
         if unknown_vars:
             raise AssertionError(
@@ -69,17 +69,11 @@ class SympyOpt:
             raise ValueError(f"Constraint {name} does not exist")
         return self.constraints.pop(name)
 
-    def get_variable(self, name: str) -> VarAbs:
-        return self.variables[name]
+    def get_var(self, name: str) -> Symbol:
+        return self.variables[name].var
 
-    def get_var(self, name: str) -> VarAbs:
-        return self.get_variable(name)
-
-    def get_variables(self) -> Dict[str, VarAbs]:
-        return self.variables
-
-    def get_vars(self) -> Dict[str, VarAbs]:
-        return self.get_variables()
+    def get_vars(self) -> Dict[str, Symbol]:
+        return {name: var.var for name, var in self.variables.items()}
 
     def int_var(self, name: str, lb: int = None, ub: int = None) -> IntVar:
         if lb is None:
@@ -123,7 +117,11 @@ class SympyOpt:
     def __eq__(self, model2) -> bool:
         if self.sense != model2.sense:
             return False
-        if sympify(self.objective - model2.objective) != 0:
+        if expand(self.objective - model2.objective) != 0:
             return False
-        # TODO implement constraints
+        if self.constraints.keys() != model2.constraints.keys():
+            return False
+        for k in self.constraints:
+            if not self.constraints[k] == model2.constraints[k]:
+                return False
         return True

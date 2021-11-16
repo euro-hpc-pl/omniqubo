@@ -5,13 +5,13 @@ default_stages: [commit, push]
 
 repos:
   - repo: https://github.com/PyCQA/isort
-    rev: 5.1.0
+    rev: 5.10.1
     hooks:
       - id: isort
         args: ["--profile", "black", "--filter-files", "--check"]
 
   - repo: https://github.com/ambv/black
-    rev: 21.6b0
+    rev: 21.10b0
     hooks:
       - id: black
         args: ["--check"]

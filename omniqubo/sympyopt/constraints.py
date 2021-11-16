@@ -2,12 +2,13 @@ from copy import deepcopy
 from typing import Iterable, List
 
 from sympy import Expr, S
+from sympy.core.function import expand
 
 from .vars import VarAbs
 
 
 def _list_unknown_vars(obj: Expr, vars: Iterable[str]) -> Iterable:
-    return filter(lambda v: v not in vars, obj.free_symbols)
+    return filter(lambda v: v.name not in vars, obj.free_symbols)
 
 
 class ConstraintAbs:
@@ -39,6 +40,13 @@ class ConstraintEq(ConstraintAbs):
     def is_eq_constraint(self) -> bool:
         return True
 
+    def __eq__(self, sec: object) -> bool:
+        if not isinstance(sec, ConstraintEq):
+            return False
+        expr1 = expand(self.exprleft - self.exprright)
+        expr2 = expand(sec.exprleft - sec.exprright)
+        return expand(expr1 - expr2) == 0
+
 
 INEQ_LEQ_SENSE = "leq"
 INEQ_GEQ_SENSE = "geq"
@@ -54,3 +62,14 @@ class ConstraintIneq(ConstraintAbs):
 
     def is_ineq_constraint(self) -> bool:
         return True
+
+    def __eq__(self, sec: object) -> bool:
+        if not isinstance(sec, ConstraintIneq):
+            return False
+        # TODO perhaps we should improve below by simple changing sense
+        print(self.sense, sec.sense)
+        if self.sense != sec.sense:
+            return False
+        expr1 = expand(self.exprleft - self.exprright)
+        expr2 = expand(sec.exprleft - sec.exprright)
+        return expand(expr1 - expr2) == 0
