@@ -124,5 +124,7 @@ class SympyOpt:
         for k in self.constraints:
             if not self.constraints[k] == model2.constraints[k]:
                 return False
+        if self.variables.keys() != model2.variables.keys():
+            return False
         # TODO "compare variables as well"
         return True
