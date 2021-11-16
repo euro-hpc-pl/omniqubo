@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Iterable, List
 
-from sympy import Expr, S
+from sympy import Expr, Float, S, preorder_traversal
 from sympy.core.function import expand
 
 from .vars import VarAbs
@@ -34,6 +34,11 @@ class ConstraintAbs:
 
 class ConstraintEq(ConstraintAbs):
     def __init__(self, exprleft: Expr, exprright: Expr) -> None:
+        if not isinstance(exprleft, Expr):
+            exprleft = S(exprleft)
+        if not isinstance(exprright, Expr):
+            exprright = S(exprright)
+
         self.exprleft = deepcopy(exprleft)
         self.exprright = deepcopy(exprright)
 
@@ -45,7 +50,20 @@ class ConstraintEq(ConstraintAbs):
             return False
         expr1 = expand(self.exprleft - self.exprright)
         expr2 = expand(sec.exprleft - sec.exprright)
-        return expand(expr1 - expr2) == 0
+
+        dif = expand(expr1 - expr2)
+        for a in preorder_traversal(dif):
+            if isinstance(a, Float):
+                dif = dif.subs(a, round(a, 15))
+        print(dif)
+        if dif == 0:
+            return True
+        dif = expand(expr1 + expr2)
+        for a in preorder_traversal(dif):
+            if isinstance(a, Float):
+                dif = dif.subs(a, round(a, 15))
+        print(dif)
+        return dif == 0
 
 
 INEQ_LEQ_SENSE = "leq"
@@ -54,6 +72,11 @@ INEQ_GEQ_SENSE = "geq"
 
 class ConstraintIneq(ConstraintAbs):
     def __init__(self, exprleft: Expr, exprright: Expr, sense: str) -> None:
+        if not isinstance(exprleft, Expr):
+            exprleft = S(exprleft)
+        if not isinstance(exprright, Expr):
+            exprright = S(exprright)
+
         self.exprleft = deepcopy(exprleft)
         self.exprright = deepcopy(exprright)
         if sense != INEQ_GEQ_SENSE and sense != INEQ_LEQ_SENSE:
@@ -66,10 +89,16 @@ class ConstraintIneq(ConstraintAbs):
     def __eq__(self, sec: object) -> bool:
         if not isinstance(sec, ConstraintIneq):
             return False
-        # TODO perhaps we should improve below by simple changing sense
-        print(self.sense, sec.sense)
-        if self.sense != sec.sense:
-            return False
+        same_sense = self.sense == sec.sense
+
         expr1 = expand(self.exprleft - self.exprright)
         expr2 = expand(sec.exprleft - sec.exprright)
-        return expand(expr1 - expr2) == 0
+        if same_sense:
+            dif = expand(expr1 - expr2)
+        else:
+            dif = expand(expr1 + expr2)
+        print(dif)
+        for a in preorder_traversal(dif):
+            if isinstance(a, Float):
+                dif = dif.subs(a, round(a, 15))
+        return dif == 0

@@ -1,3 +1,4 @@
+import pytest
 from docplex.mp.model import Model
 
 from omniqubo.soptconv.docplex_to_sympyopt import DocplexToSymopt
@@ -91,6 +92,22 @@ class TestDocplexToSymoptConstraints:
 
         assert sympymodel == sympyopt
 
+    def test_lineareq_commute_constraints(self):
+        mdl = Model(name="tsp")
+        x = mdl.binary_var("x")
+        y = mdl.integer_var(lb=-2, ub=10, name="y")
+        mdl.minimize(2 * x - 3 * y)
+        mdl.add_constraint(2 * x + 3 * y == 2, ctname="lin1")
+        sympymodel = DocplexToSymopt().convert(mdl)
+
+        sympyopt = SympyOpt()
+        xx = sympyopt.bit_var("x")
+        yy = sympyopt.int_var(lb=-2, ub=10, name="y")
+        sympyopt.minimize(2 * xx - 3 * yy)
+        sympyopt.add_constraint(ConstraintEq(2, 2 * xx + 3 * yy), name="lin1")
+
+        assert sympymodel == sympyopt
+
     def test_linearlineq_constraints(self):
         mdl = Model(name="tsp")
         x = mdl.binary_var("x")
@@ -115,13 +132,29 @@ class TestDocplexToSymoptConstraints:
 
         assert sympymodel == sympyopt
 
+    def test_badineq_constraint(self):
+        mdl = Model(name="tsp")
+        x = mdl.binary_var("x")
+        y = mdl.integer_var(lb=-2, ub=10, name="y")
+        mdl.add_constraint(2 * x + 3 * y >= 2, ctname="lin1")
+        sympymodel = DocplexToSymopt().convert(mdl)
+
+        sympyopt = SympyOpt()
+        xx = sympyopt.bit_var("x")
+        yy = sympyopt.int_var(lb=-2, ub=10, name="y")
+        sympyopt.add_constraint(
+            ConstraintIneq(2 * xx + 3 * yy, 2, INEQ_LEQ_SENSE), name="lin1"
+        )
+        with pytest.raises(AssertionError):
+            assert sympymodel == sympyopt
+
     def test_quadeq_constraints(self):
         mdl = Model(name="tsp")
         x = mdl.binary_var("x")
         y = mdl.integer_var(lb=-2, ub=10, name="y")
         mdl.minimize(2 * x - 3 * y)
         mdl.add_constraint(2 * x ** 2 + 3 * y == 2, ctname="quad1")
-        mdl.add_constraint(1.1 == (x + 10.5 * y) ** 2, ctname="quad2")
+        mdl.add_constraint((x + 10.5 * y) ** 2 == 1.1, ctname="quad2")
         sympymodel = DocplexToSymopt().convert(mdl)
 
         sympyopt = SympyOpt()
