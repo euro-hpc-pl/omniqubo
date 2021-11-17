@@ -6,13 +6,7 @@ from docplex.mp.linear import ConstantExpr, LinearExpr, MonomialExpr, ZeroExpr
 from docplex.mp.model import Model
 from docplex.mp.quad import QuadExpr
 
-from ..sympyopt import (
-    INEQ_GEQ_SENSE,
-    INEQ_LEQ_SENSE,
-    ConstraintEq,
-    ConstraintIneq,
-    SympyOpt,
-)
+from ..sympyopt import INEQ_GEQ_SENSE, INEQ_LEQ_SENSE, ConstraintEq, ConstraintIneq, SympyOpt
 from .converter import ConvertToSymoptAbs
 
 
@@ -27,13 +21,9 @@ class DocplexToSymopt(ConvertToSymoptAbs):
                 if sense == ComparisonType.EQ:
                     sympyopt.add_constraint(ConstraintEq(left, right), name=name)
                 elif sense == ComparisonType.GE:
-                    sympyopt.add_constraint(
-                        ConstraintIneq(left, right, INEQ_GEQ_SENSE), name=name
-                    )
+                    sympyopt.add_constraint(ConstraintIneq(left, right, INEQ_GEQ_SENSE), name=name)
                 elif sense == ComparisonType.LE:
-                    sympyopt.add_constraint(
-                        ConstraintIneq(left, right, INEQ_LEQ_SENSE), name=name
-                    )
+                    sympyopt.add_constraint(ConstraintIneq(left, right, INEQ_LEQ_SENSE), name=name)
                 else:
                     ValueError(f"Unknown sense {sense}")
 
@@ -63,9 +53,7 @@ class DocplexToSymopt(ConvertToSymoptAbs):
                 expr += val * sympyopt.get_var(var.name)
             expr += obj._linexpr._constant
         else:
-            raise ValueError(
-                f"New objective type {type(obj)}, {obj}. Please contact authors"
-            )
+            raise ValueError(f"New objective type {type(obj)}, {obj}. Please contact authors")
         return expr
 
     def _add_objective(self, model: Model, sympyopt: SympyOpt) -> None:
@@ -89,15 +77,11 @@ class DocplexToSymopt(ConvertToSymoptAbs):
             elif var.cplex_typecode == "C":  # continuous
                 sympyopt.real_var(name, lb=var._lb, ub=var.ub)
             elif var.cplex_typecode == "S":  # semi-continuous
-                raise NotImplementedError(
-                    "Docplex semi-continuous types not implemented"
-                )
+                raise NotImplementedError("Docplex semi-continuous types not implemented")
             elif var.cplex_typecode == "N":  # semi-integer
                 raise NotImplementedError("Docplex semi-integer types not implemented")
             else:
-                raise ValueError(
-                    f"cplex_typecode {var.cplex_typecode} - please contact authors"
-                )
+                raise ValueError(f"cplex_typecode {var.cplex_typecode} - please contact authors")
 
     def convert(self, model: Model) -> SympyOpt:
         sympyopt = SympyOpt()

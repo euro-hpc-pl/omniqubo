@@ -133,9 +133,7 @@ class SympyOpt:
 
     def __str__(self) -> str:
         out_string = "SympyOpt instance\n"
-        out_string += (
-            "minimize:\n" if self.sense == SYMPYOPT_MIN_SENSE else "maximize\n"
-        )
+        out_string += "minimize:\n" if self.sense == SYMPYOPT_MIN_SENSE else "maximize\n"
         out_string += f"   {self.objective}\n"
         if self.constraints:
             out_string += "such that:\n"

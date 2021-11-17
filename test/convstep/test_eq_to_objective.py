@@ -20,11 +20,7 @@ class TestEqToObj:
         x = sympyopt2.int_var(name="x", lb=0, ub=2)
         y = sympyopt2.int_var(lb=-2, ub=3, name="y")
         sympyopt2.minimize(
-            2 * x
-            - 3 * y
-            + 2
-            + 10 * (2 * x - 3 * y - 3) ** 2
-            + 3.5 * (2 * x ** 2 - 3 * y) ** 2
+            2 * x - 3 * y + 2 + 10 * (2 * x - 3 * y - 3) ** 2 + 3.5 * (2 * x ** 2 - 3 * y) ** 2
         )
         assert sympyopt2 == sympyopt
 
@@ -44,10 +40,6 @@ class TestEqToObj:
         x = sympyopt2.int_var(name="x", lb=0, ub=2)
         y = sympyopt2.int_var(lb=-2, ub=3, name="y")
         sympyopt2.maximize(
-            2 * x
-            - 3 * y
-            + 2
-            - 10 * (2 * x - 3 * y - 3) ** 2
-            - 3.5 * (2 * x ** 2 - 3 * y) ** 2
+            2 * x - 3 * y + 2 - 10 * (2 * x - 3 * y - 3) ** 2 - 3.5 * (2 * x ** 2 - 3 * y) ** 2
         )
         assert sympyopt2 == sympyopt

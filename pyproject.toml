@@ -1,0 +1,15 @@
+[tool.black]
+line-length = 100
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.venv
+)/
+'''
+
+[tool.isort]
+line_length = 100
+profile = "black"
+filter_files = true

@@ -51,11 +51,7 @@ class Omniqubo:
             assert isinstance(expr.exp, int)
             varname = expr.base.__name__
             var = self.model.variables[varname]
-            if (
-                vars is None
-                and not isinstance(var, BitVar)
-                and not isinstance(var, SpinVar)
-            ):
+            if vars is None and not isinstance(var, BitVar) and not isinstance(var, SpinVar):
                 return expr
             if vars is not None and var not in vars:
                 return expr
