@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Union
+from numbers import Real
 
 from sympy import Symbol
 from sympy.core.evalf import INF
@@ -28,7 +28,7 @@ class IntVar(VarAbs):
 
 
 class RealVar(VarAbs):
-    def __init__(self, name: str, lb: int = None, ub: int = None) -> None:
+    def __init__(self, name: str, lb: Real = None, ub: Real = None) -> None:
         if lb is None:
             lb = -INF
         if ub is None:
@@ -71,6 +71,3 @@ class SpinVar(VarAbs):
 
     def __str__(self) -> str:
         return f"Spin {self.name}"
-
-
-ConcreteVars = Union[IntVar, BitVar, SpinVar, RealVar]

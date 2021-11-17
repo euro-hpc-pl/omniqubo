@@ -5,7 +5,7 @@ from sympy.core.evalf import INF
 
 from .constraints import ConstraintAbs, _list_unknown_vars
 from .utils import _approx_sympy_expr, gen_random_str
-from .vars import BitVar, ConcreteVars, IntVar, RealVar, SpinVar
+from .vars import BitVar, IntVar, RealVar, SpinVar, VarAbs
 
 SYMPYOPT_MIN_SENSE = "min"
 SYMPYOPT_MAX_SENSE = "max"
@@ -16,7 +16,7 @@ class SympyOpt:
         self.constraints = dict()  # type: Dict[str,ConstraintAbs]
         self.objective = S(0)
         self.sense = SYMPYOPT_MIN_SENSE
-        self.variables = dict()  # type: Dict[str,ConcreteVars]
+        self.variables = dict()  # type: Dict[str,VarAbs]
 
     def _set_objective(self, obj: Expr) -> None:
         if not isinstance(obj, Expr):

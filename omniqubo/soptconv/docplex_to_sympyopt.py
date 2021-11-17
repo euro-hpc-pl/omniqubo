@@ -19,9 +19,7 @@ from .converter import ConvertToSymoptAbs
 class DocplexToSymopt(ConvertToSymoptAbs):
     def _add_constraints(self, model: Model, sympyopt: SympyOpt):
         for cstr in model.iter_constraints():
-            if isinstance(cstr, LinearConstraint) or isinstance(
-                cstr, QuadraticConstraint
-            ):
+            if isinstance(cstr, (LinearConstraint, QuadraticConstraint)):
                 name = cstr.name
                 sense = cstr.sense
                 left = self._get_expr(cstr.left_expr, sympyopt)

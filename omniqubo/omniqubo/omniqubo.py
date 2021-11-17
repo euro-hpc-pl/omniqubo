@@ -2,7 +2,7 @@ import re
 from copy import deepcopy
 from typing import List
 
-from sympy import S, Symbol, core, expand, total_degree
+from sympy import S, core, expand, total_degree
 
 from ..convstep import StepConvAbs, VarOneHot
 from ..soptconv import convert_to_sympyopt
@@ -18,14 +18,14 @@ class Omniqubo:
         self.model_logs = []  # type: List[SympyOpt]
         self.verbatim_logs = verbatim_logs
 
-    def _convert(self, convstep):
+    def _convert(self, convstep: StepConvAbs):
         self.logs.append(convstep)
         self.model = convstep.convert(self.model)
         if self.verbatim_logs:
             self.model_logs.append(deepcopy(self.model))
         return self.model
 
-    def interpret(self, samples, general_form=True):
+    def interpret(self, samples, general_form: bool = True):
         raise NotImplementedError()
 
     def to_qubo(self):
@@ -38,12 +38,13 @@ class Omniqubo:
         raise NotImplementedError()
 
     def _bitspin_polysimp_rec(self, expr, vars=None, mode="bit"):
+        # TODO test this heavily
         if expr.is_number:
             return expr
         if isinstance(expr, core.symbol.Symbol):
             return expr
         if isinstance(expr, core.power.Pow):
-            assert isinstance(expr.exp, int) or isinstance(expr.exp, Symbol)
+            assert isinstance(expr.exp, int)
             varname = expr.base.__name__
             var = self.model.variables[varname]
             if (
@@ -71,6 +72,7 @@ class Omniqubo:
         raise "Unrecognized operation, contact authors the code"
 
     def _bitspin_polysimp(self, expr, vars=None, mode="bit"):
+        # TODO test this heavily
         assert mode == "bit" or mode == "spin"
         # function works only for polynomials.
         # Possible waste of time if we can assume the expression is polynomial

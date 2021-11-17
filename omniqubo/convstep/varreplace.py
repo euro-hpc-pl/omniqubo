@@ -23,7 +23,7 @@ class VarReplace(StepConvAbs):
 
     def _sub_constraint(self, model: SympyOpt, expr: Expr):
         for c in model.constraints.values():
-            if isinstance(c, ConstraintEq) or isinstance(c, ConstraintIneq):
+            if isinstance(c, (ConstraintEq, ConstraintIneq)):
                 c.exprleft = c.exprleft.subs(self.var.var, expr)
                 c.exprright = c.exprright.subs(self.var.var, expr)
 
