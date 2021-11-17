@@ -1,16 +1,19 @@
+import re
 from copy import deepcopy
 from typing import List
 
-from convstep import StepConvAbs
-from soptconv import convert_to_sympyopt
 from sympy import S, Symbol, core, expand, total_degree
-from sympyopt import BitVar, SpinVar, SympyOpt
+
+from ..convstep import StepConvAbs, VarOneHot
+from ..soptconv import convert_to_sympyopt
+from ..sympyopt import BitVar, SpinVar, SympyOpt
+from ..sympyopt.vars import IntVar
 
 
 class Omniqubo:
-    def __init__(self, model, verbatim_logs=False) -> None:
+    def __init__(self, model, verbatim_logs: bool = False) -> None:
         self.orig_model = deepcopy(model)
-        self.model = convert_to_sympyopt(self.orig_model)
+        self.model = convert_to_sympyopt(self.orig_model)  # type: SympyOpt
         self.logs = []  # type: List[StepConvAbs]
         self.model_logs = []  # type: List[SympyOpt]
         self.verbatim_logs = verbatim_logs
@@ -87,46 +90,57 @@ class Omniqubo:
     def is_qubo(self):
         if len(self.model.list_constraints()) > 0:
             return False
-        if not all(isinstance(v, BitVar) for v in self.variables):
+        if not all(isinstance(v, BitVar) for v in self.model.variables):
             return False
         if not self.model.objective.is_polynomial():
             return False
-        self.model.objective = self._bitspin_polysimp(self.mode.objective)
-        return total_degree(self.model.objective) <= 2
+        objective_copy = self._bitspin_polysimp(self.mode.objective)
+        return total_degree(objective_copy) <= 2
 
     def is_hobo(self):
         if len(self.model.list_constraints()) > 0:
             return False
-        if not all(isinstance(v, BitVar) for v in self.variables):
+        if not all(isinstance(v, BitVar) for v in self.model.variables):
             return False
         return self.model.objective.is_polynomial()
 
-    def is_linear_integer_programming(self):
-        raise NotImplementedError()
+    def int_to_bits(self, mode: str, name: str = None, regname: str = None):
+        assert name is None or regname is None
+
+        conv = None
+        if mode == "one-hot":
+            conv = VarOneHot
+        else:
+            raise ValueError("Uknown mode {mode}")
+
+        if name:
+            intvar = self.model.variables[name]
+            assert isinstance(intvar, IntVar)
+            self._convert(conv(intvar))
+        else:
+            if not regname:
+                regname = ".*"
+            _rex = re.compile(regname)
+            conv_to_do = []
+            for name, var in self.model.variables.items():
+                if _rex.fullmatch(name) and isinstance(var, IntVar):
+                    conv_to_do.append(conv(var))
+            for c in conv_to_do:
+                self._convert(c)
+        return self.model
 
     def is_lip(self):
-        return self.is_integer_linear_programming()
-
-    def is_quadratic_integer_programming(self):
         raise NotImplementedError()
 
     def is_qip(self):
-        return self.is_quadratic_integer_programming()
-
-    def is_constrained_quadratic_program(self):
         raise NotImplementedError()
 
-    def is_cqm(self):
-        return self.is_constrained_quadratic_program()
-
-    def is_binary_quadratic_model(self):
+    def is_qcqp(self):
         raise NotImplementedError()
 
-    def is_bqm(self):
-        return self.is_binary_quadratic_model()
-
-    def is_mixed_integer_program(self):
-        raise NotImplementedError()
+    def is_bm(self):
+        vars = self.model.variables.values()
+        return all(isinstance(v, (BitVar, SpinVar)) for v in vars)
 
     def is_mip(self):
-        return self.is_mixed_integer_program()
+        raise NotImplementedError()

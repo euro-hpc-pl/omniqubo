@@ -4,8 +4,8 @@ from sympy import Expr, S, Symbol, expand
 from sympy.core.evalf import INF
 
 from .constraints import ConstraintAbs, _list_unknown_vars
-from .utils import gen_random_str
-from .vars import BitVar, IntVar, RealVar, SpinVar, VarAbs
+from .utils import _approx_sympy_expr, gen_random_str
+from .vars import BitVar, ConcreteVars, IntVar, RealVar, SpinVar
 
 SYMPYOPT_MIN_SENSE = "min"
 SYMPYOPT_MAX_SENSE = "max"
@@ -16,7 +16,7 @@ class SympyOpt:
         self.constraints = dict()  # type: Dict[str,ConstraintAbs]
         self.objective = S(0)
         self.sense = SYMPYOPT_MIN_SENSE
-        self.variables = dict()  # type: Dict[str,VarAbs]
+        self.variables = dict()  # type: Dict[str,ConcreteVars]
 
     def _set_objective(self, obj: Expr) -> None:
         if not isinstance(obj, Expr):
@@ -75,7 +75,7 @@ class SympyOpt:
     def get_vars(self) -> Dict[str, Symbol]:
         return {name: var.var for name, var in self.variables.items()}
 
-    def int_var(self, name: str, lb: int = None, ub: int = None) -> IntVar:
+    def int_var(self, name: str, lb: int = None, ub: int = None) -> Symbol:
         if lb is None:
             lb = -INF
         if ub is None:
@@ -87,7 +87,7 @@ class SympyOpt:
         self.variables[name] = var
         return var.var
 
-    def real_var(self, name: str, lb: float = None, ub: float = None) -> RealVar:
+    def real_var(self, name: str, lb: float = None, ub: float = None) -> Symbol:
         if lb is None:
             lb = -INF
         if ub is None:
@@ -100,14 +100,14 @@ class SympyOpt:
         self.variables[name] = var
         return var.var
 
-    def bit_var(self, name: str) -> BitVar:
+    def bit_var(self, name: str) -> Symbol:
         if name in self.variables.keys():
             raise ValueError(f"Variable {name} already exists")
         var = BitVar(name)
         self.variables[name] = var
         return var.var
 
-    def spin_var(self, name: str) -> SpinVar:
+    def spin_var(self, name: str) -> Symbol:
         if name in self.variables.keys():
             raise ValueError(f"Variable {name} already exists")
         var = SpinVar(name)
@@ -117,7 +117,7 @@ class SympyOpt:
     def __eq__(self, model2) -> bool:
         if self.sense != model2.sense:
             return False
-        if expand(self.objective - model2.objective) != 0:
+        if _approx_sympy_expr(expand(self.objective - model2.objective)) != 0:
             return False
         if self.constraints.keys() != model2.constraints.keys():
             return False
@@ -126,5 +126,23 @@ class SympyOpt:
                 return False
         if self.variables.keys() != model2.variables.keys():
             return False
-        # TODO "compare variables as well"
+        for k in self.variables:
+            if not self.variables[k] == model2.variables[k]:
+                return False
         return True
+
+    def __str__(self) -> str:
+        out_string = "SympyOpt instance\n"
+        out_string += (
+            "minimize:\n" if self.sense == SYMPYOPT_MIN_SENSE else "maximize\n"
+        )
+        out_string += f"   {self.objective}\n"
+        if self.constraints:
+            out_string += "such that:\n"
+            for name in self.constraints:
+                out_string += f"   {name}: {self.constraints[name]}\n"
+        if self.variables:
+            out_string += "variables:\n"
+            for name in self.variables:
+                out_string += f"   {name}: {self.variables[name]}\n"
+        return out_string

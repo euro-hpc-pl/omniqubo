@@ -4,6 +4,7 @@ from typing import Iterable, List
 from sympy import Expr, Float, S, preorder_traversal
 from sympy.core.function import expand
 
+from .utils import _approx_sympy_expr
 from .vars import VarAbs
 
 
@@ -31,6 +32,9 @@ class ConstraintAbs:
         rvars_uknown = _list_unknown_vars(self.exprleft, vars)
         return list(lvars_uknown) + list(rvars_uknown)
 
+    def _list_expr(self) -> Iterable[Expr]:
+        return []
+
 
 class ConstraintEq(ConstraintAbs):
     def __init__(self, exprleft: Expr, exprright: Expr) -> None:
@@ -55,15 +59,16 @@ class ConstraintEq(ConstraintAbs):
         for a in preorder_traversal(dif):
             if isinstance(a, Float):
                 dif = dif.subs(a, round(a, 15))
-        print(dif)
         if dif == 0:
             return True
         dif = expand(expr1 + expr2)
         for a in preorder_traversal(dif):
             if isinstance(a, Float):
                 dif = dif.subs(a, round(a, 15))
-        print(dif)
         return dif == 0
+
+    def __str__(self) -> str:
+        return f"{self.exprleft} == {self.exprright}"
 
 
 INEQ_LEQ_SENSE = "leq"
@@ -97,8 +102,8 @@ class ConstraintIneq(ConstraintAbs):
             dif = expand(expr1 - expr2)
         else:
             dif = expand(expr1 + expr2)
-        print(dif)
-        for a in preorder_traversal(dif):
-            if isinstance(a, Float):
-                dif = dif.subs(a, round(a, 15))
-        return dif == 0
+        return _approx_sympy_expr(dif) == 0
+
+    def __str__(self) -> str:
+        sense = ">=" if self.sense == INEQ_GEQ_SENSE else "<="
+        return f"{self.exprleft} {sense} {self.exprright}"

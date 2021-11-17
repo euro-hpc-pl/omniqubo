@@ -1,4 +1,4 @@
 from .stepconvclass import StepConvAbs
-from .varreplace import VarReplace
+from .varreplace import VarOneHot, VarReplace
 
-__all__ = ["StepConvAbs", "VarReplace"]
+__all__ = ["StepConvAbs", "VarReplace", "VarOneHot"]
