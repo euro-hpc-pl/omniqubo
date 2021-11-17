@@ -3,7 +3,7 @@ from omniqubo.sympyopt import SympyOpt
 from omniqubo.sympyopt.constraints import ConstraintEq
 
 
-class TestOneHotElementary:
+class TestOneHot:
     def test_objective(self):
         sympyopt = SympyOpt()
         x = sympyopt.int_var(name="x", lb=0, ub=2)

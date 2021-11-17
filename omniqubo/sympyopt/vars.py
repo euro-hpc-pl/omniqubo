@@ -1,5 +1,4 @@
 from abc import ABC
-from numbers import Real
 
 from sympy import Symbol
 from sympy.core.evalf import INF
@@ -28,7 +27,7 @@ class IntVar(VarAbs):
 
 
 class RealVar(VarAbs):
-    def __init__(self, name: str, lb: Real = None, ub: Real = None) -> None:
+    def __init__(self, name: str, lb: float = None, ub: float = None) -> None:
         if lb is None:
             lb = -INF
         if ub is None:

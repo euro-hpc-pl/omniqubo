@@ -4,10 +4,14 @@ from typing import List
 
 from sympy import S, core, expand, total_degree
 
-from ..convstep import StepConvAbs, VarOneHot
+from omniqubo.sympyopt.constraints import ConstraintEq
+
+from ..convstep import EqToObj, StepConvAbs, VarOneHot
 from ..soptconv import convert_to_sympyopt
 from ..sympyopt import BitVar, SpinVar, SympyOpt
 from ..sympyopt.vars import IntVar
+
+DEFAULT_PENALTY_VALUE = 1000.0
 
 
 class Omniqubo:
@@ -106,7 +110,28 @@ class Omniqubo:
             return False
         return self.model.objective.is_polynomial()
 
-    def int_to_bits(self, mode: str, name: str = None, regname: str = None):
+    def eq_to_obj(self, name: str = None, regname: str = None, penalty: float = None):
+        assert name is None or regname is None
+        if penalty is None:
+            penalty = DEFAULT_PENALTY_VALUE
+
+        if name:
+            constr = self.model.constraints[name]
+            assert isinstance(constr, ConstraintEq)
+            self._convert(EqToObj(name, penalty))
+        else:
+            if not regname:
+                regname = ".*"
+            _rex = re.compile(regname)
+            conv_to_do = []
+            for name, constr in self.model.constraints.items():
+                if _rex.fullmatch(name) and isinstance(constr, ConstraintEq):
+                    conv_to_do.append(EqToObj(name, penalty))
+            for c in conv_to_do:
+                self._convert(c)
+        return self.model
+
+    def int_to_bits(self, mode: str, name: str = None, regname: str = None) -> SympyOpt:
         assert name is None or regname is None
 
         conv = None

@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from omniqubo.sympyopt.sympyopt import SympyOpt
+
 
 class StepConvAbs(ABC):
     @abstractmethod
@@ -11,5 +13,5 @@ class StepConvAbs(ABC):
         pass
 
     @abstractmethod
-    def convert(self, model):
+    def convert(self, model: SympyOpt):
         pass
