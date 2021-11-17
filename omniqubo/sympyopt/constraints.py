@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import Iterable, List
 
@@ -12,28 +13,24 @@ def _list_unknown_vars(obj: Expr, vars: Iterable[str]) -> Iterable:
     return filter(lambda v: v.name not in vars, obj.free_symbols)
 
 
-class ConstraintAbs:
+class ConstraintAbs(ABC):
     def __init__(self) -> None:
         self.exprleft = S(0)
         self.exprright = S(0)
         pass
 
+    @abstractmethod
     def is_eq_constraint(self) -> bool:
-        return False
+        pass
 
+    @abstractmethod
     def is_ineq_constraint(self) -> bool:
-        return False
-
-    def is_type_constraint(self) -> bool:
-        return False
+        pass
 
     def _list_unknown_vars(self, vars: Iterable[str]) -> List[VarAbs]:
         lvars_uknown = _list_unknown_vars(self.exprleft, vars)
         rvars_uknown = _list_unknown_vars(self.exprleft, vars)
         return list(lvars_uknown) + list(rvars_uknown)
-
-    def _list_expr(self) -> Iterable[Expr]:
-        return []
 
 
 class ConstraintEq(ConstraintAbs):
@@ -47,6 +44,9 @@ class ConstraintEq(ConstraintAbs):
         self.exprright = deepcopy(exprright)
 
     def is_eq_constraint(self) -> bool:
+        return True
+
+    def is_ineq_constraint(self) -> bool:
         return True
 
     def __eq__(self, sec: object) -> bool:
@@ -87,6 +87,9 @@ class ConstraintIneq(ConstraintAbs):
         if sense != INEQ_GEQ_SENSE and sense != INEQ_LEQ_SENSE:
             raise ValueError(f"incorrect sense {sense}")
         self.sense = sense
+
+    def is_eq_constraint(self) -> bool:
+        return False
 
     def is_ineq_constraint(self) -> bool:
         return True

@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 from sympy import Expr
 from sympy.core.evalf import INF
 
@@ -11,12 +13,13 @@ class VarReplace(StepConvAbs):
     def __init__(self, var: IntVar) -> None:
         self.var = var
 
+    @abstractmethod
     def _get_expr_add_constr(self, model: SympyOpt) -> Expr:
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     def _check_model(self, model: SympyOpt) -> None:
-        # should be implemented as it is unlikely there are no conditions
-        raise NotImplementedError()
+        pass
 
     def _sub_constraint(self, model: SympyOpt, expr: Expr):
         for c in model.constraints.values():
@@ -41,6 +44,9 @@ class VarReplace(StepConvAbs):
 class VarOneHot(VarReplace):
     def __init__(self, var: IntVar) -> None:
         super().__init__(var)
+
+    def interpret(self, sample):
+        raise NotImplementedError()
 
     def _get_expr_add_constr(self, model: SympyOpt) -> Expr:
         name = self.var.name

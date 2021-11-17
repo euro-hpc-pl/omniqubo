@@ -1,10 +1,11 @@
+from abc import ABC
 from typing import Union
 
 from sympy import Symbol
 from sympy.core.evalf import INF
 
 
-class VarAbs:
+class VarAbs(ABC):
     def __init__(self, name: str) -> None:
         self.name = name
         self.var = Symbol(name)
