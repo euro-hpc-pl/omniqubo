@@ -1,6 +1,32 @@
+import pytest
+from docplex.mp.model import Model
+
 from omniqubo.omniqubo.omniqubo import Omniqubo
 from omniqubo.sympyopt import SympyOpt
 from omniqubo.sympyopt.constraints import ConstraintEq
+
+
+class TestOmniquboInit:
+    def test_docplex(self):
+        mdl = Model(name="tsp")
+        x = mdl.binary_var("x")
+        y = mdl.integer_var(lb=-2, ub=10, name="y")
+        mdl.minimize((2 * x - 3 * y + 2) ** 2)
+        omniqubo = Omniqubo(mdl)
+        assert isinstance(omniqubo.model, SympyOpt)
+
+    def test_sympyopt(self):
+        sympyopt = SympyOpt()
+        y1 = sympyopt.int_var(lb=0, ub=2, name="y1")
+        y2 = sympyopt.int_var(lb=-2, ub=10, name="y20")
+        x = sympyopt.bit_var(name="x")
+        sympyopt.minimize(2 * y1 - 3 * y2 + x)
+        omniqubo = Omniqubo(sympyopt)
+        assert omniqubo.model == sympyopt
+
+    def test_error(self):
+        with pytest.raises(ValueError):
+            Omniqubo(1)
 
 
 class TestOmniqubo:
