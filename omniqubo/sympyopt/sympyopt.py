@@ -1,9 +1,9 @@
 from typing import Dict
 
-from sympy import Expr, S, Symbol, expand
+from sympy import Expr, Integer, S, Symbol, core, expand, total_degree
 from sympy.core.evalf import INF
 
-from .constraints import ConstraintAbs, _list_unknown_vars
+from .constraints import ConstraintAbs, ConstraintEq, ConstraintIneq, _list_unknown_vars
 from .utils import _approx_sympy_expr, gen_random_str
 from .vars import BitVar, IntVar, RealVar, SpinVar, VarAbs
 
@@ -44,7 +44,7 @@ class SympyOpt:
             # HACK: (optional) function may check the probability of getting string,
             # and if needed increase the name length
             name = gen_random_str()
-            while name not in self.constraints.keys():
+            while name in self.constraints.keys():
                 name = gen_random_str()
         unknown_vars = constr._list_unknown_vars(self.variables.keys())
         if len(unknown_vars) != 0:
@@ -144,3 +144,133 @@ class SympyOpt:
             for name in self.variables:
                 out_string += f"   {name}: {self.variables[name]}\n"
         return out_string
+
+    def _bitspin_simp_rec(self, expr: Expr) -> Expr:
+        if expr.is_number:
+            return expr
+        if isinstance(expr, core.symbol.Symbol):
+            return expr
+        if isinstance(expr, core.power.Pow):
+            if isinstance(expr.exp, Integer) and expr.exp > 0 and isinstance(expr.base, Symbol):
+                name = expr.base.name
+                var = self.variables[name]
+                if isinstance(var, BitVar):
+                    return expr.base
+                elif isinstance(var, SpinVar):
+                    if expr.exp % 2 == 0:
+                        return S(1)
+                    else:
+                        return expr.base
+                else:
+                    return expr
+        if isinstance(expr, core.mul.Mul):  # if produce
+            tmp_term = S(1)
+            for el_prod in expr._args:
+                # below there is recursive run, but can be only once if expr is expanded polynomial
+                tmp_term *= self._bitspin_simp_rec(el_prod)
+            return tmp_term
+        # don't do anything inside a non-polynomial parts, for example exp(b**3) == exp(b**3)
+        return expr
+
+    def _bitspin_simp(self, expr: Expr) -> Expr:
+        expr = expand(expr)
+        if isinstance(expr, core.add.Add):
+            new_expr = S(0)
+            for el in expr._args:
+                new_expr += self._bitspin_simp_rec(el)
+            return new_expr
+        else:
+            return self._bitspin_simp_rec(expr)
+
+    def _are_constrs_poly(self, order=None) -> bool:
+        for c in self.constraints.values():
+            if not isinstance(c, (ConstraintEq, ConstraintIneq)):
+                return False
+            for expr in [c.exprleft, c.exprright]:
+                if not expr.is_polynomial():
+                    return False
+                if order is not None:
+                    if total_degree(self._bitspin_simp(expr)) > order:
+                        return False
+        return True
+
+    def is_lip(self) -> bool:
+        if not all(isinstance(v, (BitVar, IntVar)) for v in self.variables.values()):
+            return False
+        if not self.objective.is_polynomial():
+            return False
+        objective_copy = self._bitspin_simp(self.objective)
+        if total_degree(objective_copy) > 1:
+            return False
+        if not self._are_constrs_poly(order=1):
+            return False
+        return True
+
+    def is_qip(self) -> bool:
+        if not all(isinstance(v, (BitVar, IntVar)) for v in self.variables.values()):
+            return False
+        if not self.objective.is_polynomial():
+            return False
+        objective_copy = self._bitspin_simp(self.objective)
+        if total_degree(objective_copy) > 2:
+            return False
+        if not self._are_constrs_poly(order=1):
+            return False
+        return True
+
+        raise NotImplementedError()
+
+    def is_pp(self) -> bool:
+        if not all(isinstance(v, (BitVar, IntVar)) for v in self.variables.values()):
+            return False
+        if not self.objective.is_polynomial():
+            return False
+        if not self._are_constrs_poly():
+            return False
+        return True
+
+    def is_qcqp(self) -> bool:
+        if not all(isinstance(v, (BitVar, IntVar)) for v in self.variables.values()):
+            return False
+        if not self.objective.is_polynomial():
+            return False
+        objective_copy = self._bitspin_simp(self.objective)
+        if total_degree(objective_copy) > 2:
+            return False
+        if not self._are_constrs_poly(order=2):
+            return False
+        return True
+
+    def is_bm(self) -> bool:
+        vars = self.variables.values()
+        return all(isinstance(v, (BitVar, SpinVar)) for v in vars)
+
+    def is_qubo(self) -> bool:
+        if len(self.list_constraints()) > 0:
+            return False
+        if not all(isinstance(v, BitVar) for v in self.variables.values()):
+            return False
+        if not self.objective.is_polynomial():
+            return False
+        objective_copy = self._bitspin_simp(self.objective)
+        return total_degree(objective_copy) <= 2
+
+    def is_ising(self, locality: int = None) -> bool:
+        if locality is None:
+            locality = 2
+        assert locality > 0
+        if len(self.list_constraints()) > 0:
+            return False
+        if not all(isinstance(v, SpinVar) for v in self.variables.values()):
+            return False
+        if not self.objective.is_polynomial():
+            return False
+        objective_copy = self._bitspin_simp(self.objective)
+        return total_degree(objective_copy) <= locality
+
+    def is_hobo(self) -> bool:
+        if len(self.list_constraints()) > 0:
+            return False
+        if not all(isinstance(v, BitVar) for v in self.variables.values()):
+            return False
+        return self.objective.is_polynomial()
