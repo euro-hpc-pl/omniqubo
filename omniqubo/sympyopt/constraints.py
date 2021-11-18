@@ -26,6 +26,7 @@ class ConstraintAbs(ABC):
     def is_ineq_constraint(self) -> bool:
         pass
 
+    @abstractmethod
     def _list_unknown_vars(self, vars: Iterable[str]) -> List[VarAbs]:
         pass
 
@@ -66,6 +67,11 @@ class ConstraintEq(ConstraintAbs):
 
     def __str__(self) -> str:
         return f"{self.exprleft} == {self.exprright}"
+
+    def _list_unknown_vars(self, vars: Iterable[str]) -> List[VarAbs]:
+        lvars_uknown = _list_unknown_vars(self.exprleft, vars)
+        rvars_uknown = _list_unknown_vars(self.exprleft, vars)
+        return list(lvars_uknown) + list(rvars_uknown)
 
 
 INEQ_LEQ_SENSE = "leq"
@@ -109,3 +115,8 @@ class ConstraintIneq(ConstraintAbs):
     def __str__(self) -> str:
         sense = ">=" if self.sense == INEQ_GEQ_SENSE else "<="
         return f"{self.exprleft} {sense} {self.exprright}"
+
+    def _list_unknown_vars(self, vars: Iterable[str]) -> List[VarAbs]:
+        lvars_uknown = _list_unknown_vars(self.exprleft, vars)
+        rvars_uknown = _list_unknown_vars(self.exprleft, vars)
+        return list(lvars_uknown) + list(rvars_uknown)
