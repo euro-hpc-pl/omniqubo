@@ -2,7 +2,7 @@ import pytest
 from docplex.mp.model import Model
 
 from omniqubo.soptconv.docplex_to_sympyopt import DocplexToSymopt
-from omniqubo.sympyopt import INEQ_GEQ_SENSE, INEQ_LEQ_SENSE, ConstraintEq, ConstraintIneq, SympyOpt
+from omniqubo.sympyopt import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq, SympyOpt
 from omniqubo.sympyopt.vars import BitVar, IntVar, RealVar
 
 
@@ -130,7 +130,6 @@ class TestDocplexToSymoptTypes:
         y = mdl.continuous_var(name="y")
         mdl.minimize(2 * y)
         sympyopt = DocplexToSymopt().convert(mdl)
-        print(sympyopt.variables["y"])
         assert sympyopt.variables["y"] == RealVar(lb=0, ub=1e20, name="y")
 
     def test_semireal(self):
@@ -200,7 +199,7 @@ class TestDocplexToSymoptConstraints:
         yy = sympyopt.int_var(lb=-2, ub=10, name="y")
         sympyopt.minimize(2 * xx - 3 * yy)
         sympyopt.add_constraint(ConstraintIneq(2 * xx + 3 * yy, 2, INEQ_GEQ_SENSE), name="lin1")
-        sympyopt.add_constraint(ConstraintIneq(xx + 10.5 * yy, 1.1, INEQ_LEQ_SENSE), name="lin2")
+        sympyopt.add_constraint(ConstraintIneq(xx + 10.5 * yy, 1.1), name="lin2")
         sympyopt.add_constraint(ConstraintEq(yy, 5), name="trivial")
 
         assert sympymodel == sympyopt
@@ -215,7 +214,7 @@ class TestDocplexToSymoptConstraints:
         sympyopt = SympyOpt()
         xx = sympyopt.bit_var("x")
         yy = sympyopt.int_var(lb=-2, ub=10, name="y")
-        sympyopt.add_constraint(ConstraintIneq(2 * xx + 3 * yy, 2, INEQ_LEQ_SENSE), name="lin1")
+        sympyopt.add_constraint(ConstraintIneq(2 * xx + 3 * yy, 2), name="lin1")
         with pytest.raises(AssertionError):
             assert sympymodel == sympyopt
 
@@ -253,8 +252,6 @@ class TestDocplexToSymoptConstraints:
         sympyopt.add_constraint(
             ConstraintIneq(2 * xx ** 2 + 3 * yy, 2, INEQ_GEQ_SENSE), name="quad1"
         )
-        sympyopt.add_constraint(
-            ConstraintIneq(1.1, (xx + 10.5 * yy) ** 2, INEQ_LEQ_SENSE), name="quad2"
-        )
+        sympyopt.add_constraint(ConstraintIneq(1.1, (xx + 10.5 * yy) ** 2), name="quad2")
 
         assert sympymodel == sympyopt

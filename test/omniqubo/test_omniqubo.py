@@ -1,9 +1,11 @@
+from copy import deepcopy
+
 import pytest
 from docplex.mp.model import Model
 
 from omniqubo.omniqubo.omniqubo import Omniqubo
 from omniqubo.sympyopt import SympyOpt
-from omniqubo.sympyopt.constraints import ConstraintEq
+from omniqubo.sympyopt.constraints import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq
 
 
 class TestOmniquboInit:
@@ -57,6 +59,49 @@ class TestOmniqubo:
         omniqubo.int_to_bits(mode="one-hot")
         assert omniqubo.is_bm()
 
+    def test_name_minmax(self):
+        sympyopt = SympyOpt()
+        y = sympyopt.int_var(lb=0, ub=2, name="y1")
+        x = sympyopt.bit_var(name="x")
+        sympyopt.minimize(2 * y + x)
+        sympyopt.add_constraint(ConstraintEq(2 * y, 2), name="lin1")
+        sympyopt.add_constraint(ConstraintEq(y, 1.1 + x), name="lin2")
+
+        sympyopt_min = deepcopy(sympyopt)
+        sympyopt.maximize(-2 * y - x)
+        sympyopt_max = deepcopy(sympyopt)
+        assert sympyopt_max != sympyopt_min
+
+        omniqubo = Omniqubo(sympyopt_min)
+        assert omniqubo.model == sympyopt_min
+        omniqubo.make_max()
+        assert omniqubo.model == sympyopt_max
+        omniqubo.make_min()
+        assert omniqubo.model == sympyopt_min
+
+    def test_remove_constraint(self):
+        sympyopt = SympyOpt()
+        y = sympyopt.int_var(lb=0, ub=2, name="y1")
+        x = sympyopt.bit_var(name="x")
+        sympyopt.minimize(2 * y + x)
+        sympyopt.add_constraint(ConstraintEq(2 * y, 2), name="lin1")
+        sympyopt.add_constraint(ConstraintEq(y, 1.1 + x), name="lin2")
+
+        omniqubo = Omniqubo(deepcopy(sympyopt))
+        omniqubo.rm_constraint(name="lin1")
+        assert omniqubo.model.constraints.keys() == {"lin2"}
+        assert omniqubo.model.objective != 0
+
+        omniqubo = Omniqubo(deepcopy(sympyopt))
+        omniqubo.rm_constraint(regname="lin[1-2]")
+        assert len(omniqubo.model.constraints.keys()) == 0
+        assert omniqubo.model.objective != 0
+
+        omniqubo = Omniqubo(deepcopy(sympyopt))
+        omniqubo.rm_constraint()
+        assert len(omniqubo.model.constraints.keys()) == 0
+        assert omniqubo.model.objective != 0
+
     def test_name_eq_to_obj(self):
         sympyopt = SympyOpt()
         y1 = sympyopt.int_var(lb=0, ub=2, name="y1")
@@ -79,3 +124,133 @@ class TestOmniqubo:
 
         omniqubo.eq_to_obj(regname="lin[0-9]+", penalty=1.0)
         assert len(omniqubo.model.constraints) == 0
+
+    def test_qubo_isstatements(self):
+        sopt = SympyOpt()
+        x = sopt.bit_var("x")
+        y = sopt.bit_var("y")
+        z = sopt.bit_var("z")
+        sopt.minimize(x ** 2 + (z + y) ** 2)
+        omniqubo = Omniqubo(sopt)
+
+        assert omniqubo.is_bm()
+        assert omniqubo.is_qubo()
+        assert omniqubo.is_hobo()
+        assert omniqubo.is_pp()
+        assert omniqubo.is_qip()
+        assert not omniqubo.is_lip()
+        assert omniqubo.is_qcqp()
+        assert not omniqubo.is_ising()
+
+    def test_hobo_isstatements(self):
+        sopt = SympyOpt()
+        x = sopt.bit_var("x")
+        y = sopt.bit_var("y")
+        z = sopt.bit_var("z")
+        sopt.minimize(x ** 2 + (z + y + x) ** 4)
+        omniqubo = Omniqubo(sopt)
+
+        assert omniqubo.is_bm()
+        assert not omniqubo.is_qubo()
+        assert omniqubo.is_hobo()
+        assert omniqubo.is_pp()
+        assert not omniqubo.is_qip()
+        assert not omniqubo.is_lip()
+        assert not omniqubo.is_qcqp()
+        assert not omniqubo.is_ising()
+        assert not omniqubo.is_ising(locality=3)
+
+    def test_ising_isstatements(self):
+        sopt = SympyOpt()
+        x = sopt.spin_var("x")
+        y = sopt.spin_var("y")
+        z = sopt.spin_var("z")
+        sopt.minimize(x ** 2 + (z + y) ** 2)
+        omniqubo = Omniqubo(sopt)
+
+        assert omniqubo.is_bm()
+        assert not omniqubo.is_qubo()
+        assert not omniqubo.is_hobo()
+        assert not omniqubo.is_pp()
+        assert not omniqubo.is_qip()
+        assert not omniqubo.is_lip()
+        assert not omniqubo.is_qcqp()
+        assert omniqubo.is_ising()
+        assert omniqubo.is_ising(locality=3)
+        assert not omniqubo.is_ising(locality=1)
+
+        sopt = SympyOpt()
+        x = sopt.spin_var("x")
+        y = sopt.spin_var("y")
+        z = sopt.spin_var("z")
+        sopt.minimize(x ** 2 + (z + y + x) ** 3)
+        omniqubo = Omniqubo(sopt)
+
+        assert omniqubo.is_bm()
+        assert not omniqubo.is_qubo()
+        assert not omniqubo.is_hobo()
+        assert not omniqubo.is_pp()
+        assert not omniqubo.is_qip()
+        assert not omniqubo.is_lip()
+        assert not omniqubo.is_qcqp()
+        assert not omniqubo.is_ising()
+        assert omniqubo.is_ising(locality=3)
+        assert not omniqubo.is_ising(locality=1)
+
+    def test_qcpc_isstatements(self):
+        sopt = SympyOpt()
+        x = sopt.bit_var("x")
+        y = sopt.int_var(lb=-2, ub=4, name="y")
+        z = sopt.bit_var("z")
+        sopt.minimize(2 * x + 4 * y - 3 * z ** 2)
+        c = ConstraintIneq(2 * x - 3 * y + 3.4 * z, 1.4 + 2 * x, INEQ_GEQ_SENSE)
+        sopt.add_constraint(c)
+        c = ConstraintEq(2 * x - 3 * y + 3.4 * z ** 2, 1.4 + 2 * x)
+        sopt.add_constraint(c)
+        omniqubo = Omniqubo(sopt)
+
+        assert not omniqubo.is_bm()
+        assert not omniqubo.is_qubo()
+        assert not omniqubo.is_hobo()
+        assert omniqubo.is_pp()
+        assert omniqubo.is_qip()
+        assert omniqubo.is_lip()
+        assert omniqubo.is_qcqp()
+        assert not omniqubo.is_ising()
+
+        sopt.minimize(2 * x + 4 * y ** 2 - 3 * z ** 2)
+        omniqubo = Omniqubo(sopt)
+
+        assert not omniqubo.is_bm()
+        assert not omniqubo.is_qubo()
+        assert not omniqubo.is_hobo()
+        assert omniqubo.is_pp()
+        assert omniqubo.is_qip()
+        assert not omniqubo.is_lip()
+        assert omniqubo.is_qcqp()
+        assert not omniqubo.is_ising()
+
+        c = ConstraintEq(2 * x - 3 * y ** 2 + 3.4 * z ** 2, 1.4 + 2 * x)
+        sopt.add_constraint(c)
+        omniqubo = Omniqubo(sopt)
+
+        assert not omniqubo.is_bm()
+        assert not omniqubo.is_qubo()
+        assert not omniqubo.is_hobo()
+        assert omniqubo.is_pp()
+        assert not omniqubo.is_qip()
+        assert not omniqubo.is_lip()
+        assert omniqubo.is_qcqp()
+        assert not omniqubo.is_ising()
+
+        sopt.minimize(2 * x + 4 * y ** 3 - 3 * z ** 2)
+        omniqubo = Omniqubo(sopt)
+
+        assert not omniqubo.is_bm()
+        assert not omniqubo.is_qubo()
+        assert not omniqubo.is_hobo()
+        assert omniqubo.is_pp()
+        assert not omniqubo.is_qip()
+        assert not omniqubo.is_lip()
+        assert not omniqubo.is_qcqp()
+        assert not omniqubo.is_ising()

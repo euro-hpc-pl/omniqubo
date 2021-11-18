@@ -4,7 +4,7 @@ from typing import List
 
 from omniqubo.sympyopt.constraints import ConstraintEq
 
-from ..convstep import EqToObj, StepConvAbs, VarOneHot
+from ..convstep import EqToObj, MakeMax, MakeMin, RemoveConstraint, StepConvAbs, VarOneHot
 from ..soptconv import convert_to_sympyopt
 from ..sympyopt import SympyOpt
 from ..sympyopt.vars import IntVar
@@ -39,6 +39,31 @@ class Omniqubo:
     def export(self, mode: str):
         raise NotImplementedError()
 
+    def make_max(self) -> SympyOpt:
+        self._convert(MakeMax())
+        return self.model
+
+    def make_min(self) -> SympyOpt:
+        self._convert(MakeMin())
+        return self.model
+
+    def rm_constraint(self, name: str = None, regname: str = None) -> SympyOpt:
+        assert name is None or regname is None
+
+        if name:
+            self._convert(RemoveConstraint(name))
+        else:
+            if not regname:
+                regname = ".*"
+            _rex = re.compile(regname)
+            conv_to_do = []
+            for name in self.model.constraints:
+                if _rex.fullmatch(name):
+                    conv_to_do.append(RemoveConstraint(name))
+            for c in conv_to_do:
+                self._convert(c)
+        return self.model
+
     def eq_to_obj(self, name: str = None, regname: str = None, penalty: float = None):
         assert name is None or regname is None
         if penalty is None:
@@ -67,7 +92,7 @@ class Omniqubo:
         if mode == "one-hot":
             conv = VarOneHot
         else:
-            raise ValueError("Uknown mode {mode}")
+            raise ValueError("Uknown mode {mode}")  # pragma: no cover
 
         if name:
             intvar = self.model.variables[name]
@@ -85,20 +110,26 @@ class Omniqubo:
                 self._convert(c)
         return self.model
 
-    def is_qubo(self):
+    def is_qubo(self) -> bool:
         return self.model.is_qubo()
 
-    def is_hobo(self):
+    def is_hobo(self) -> bool:
         return self.model.is_hobo()
 
-    def is_lip(self):
+    def is_lip(self) -> bool:
         return self.model.is_lip()
 
-    def is_qip(self):
+    def is_qip(self) -> bool:
         return self.model.is_qip()
 
-    def is_qcqp(self):
+    def is_qcqp(self) -> bool:
         return self.model.is_qcqp()
 
-    def is_bm(self):
+    def is_bm(self) -> bool:
         return self.model.is_bm()
+
+    def is_pp(self) -> bool:
+        return self.model.is_pp()
+
+    def is_ising(self, locality: int = None) -> bool:
+        return self.model.is_ising(locality=locality)

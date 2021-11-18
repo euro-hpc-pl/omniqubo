@@ -23,8 +23,6 @@ class TestOneHot:
         c = ConstraintEq(y1 + y2 + y3 + y4 + y5 + y6, 1)
         sympyopt2.add_constraint(c, name="_@@_OH_y")
         sympyopt2.minimize(2 * x + 6 * y1 + 3 * y2 - 3 * y4 - 6 * y5 - 9 * y6 + 2)
-        print(sympyopt)
-        print(sympyopt2)
         assert sympyopt == sympyopt2
 
     def test_constraints(self):

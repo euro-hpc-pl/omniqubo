@@ -24,7 +24,6 @@ class IntVar(VarAbs):
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, IntVar):
             return False
-        print()
         return self.name == o.name and self.lb == o.lb and self.ub == o.ub
 
     def __str__(self) -> str:

@@ -13,7 +13,7 @@ class EqToObj(StepConvAbs):
         self.penalty = penalty
 
     def interpret(self, sample):
-        raise NotImplementedError
+        return sample
 
     def convert(self, model: SympyOpt):
         assert self.name in model.constraints.keys()

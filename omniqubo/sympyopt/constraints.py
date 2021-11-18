@@ -14,9 +14,8 @@ def _list_unknown_vars(obj: Expr, vars: Iterable[str]) -> Iterable:
 
 
 class ConstraintAbs(ABC):
+    @abstractmethod
     def __init__(self) -> None:
-        self.exprleft = S(0)
-        self.exprright = S(0)
         pass
 
     @abstractmethod
@@ -28,9 +27,7 @@ class ConstraintAbs(ABC):
         pass
 
     def _list_unknown_vars(self, vars: Iterable[str]) -> List[VarAbs]:
-        lvars_uknown = _list_unknown_vars(self.exprleft, vars)
-        rvars_uknown = _list_unknown_vars(self.exprleft, vars)
-        return list(lvars_uknown) + list(rvars_uknown)
+        pass
 
 
 class ConstraintEq(ConstraintAbs):
@@ -47,7 +44,7 @@ class ConstraintEq(ConstraintAbs):
         return True
 
     def is_ineq_constraint(self) -> bool:
-        return True
+        return False
 
     def __eq__(self, sec: object) -> bool:
         if not isinstance(sec, ConstraintEq):
@@ -76,11 +73,13 @@ INEQ_GEQ_SENSE = "geq"
 
 
 class ConstraintIneq(ConstraintAbs):
-    def __init__(self, exprleft: Expr, exprright: Expr, sense: str) -> None:
+    def __init__(self, exprleft: Expr, exprright: Expr, sense: str = None) -> None:
         if not isinstance(exprleft, Expr):
             exprleft = S(exprleft)
         if not isinstance(exprright, Expr):
             exprright = S(exprright)
+        if sense is None:
+            sense = INEQ_LEQ_SENSE
 
         self.exprleft = deepcopy(exprleft)
         self.exprright = deepcopy(exprright)

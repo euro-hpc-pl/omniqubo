@@ -63,11 +63,6 @@ class SympyOpt:
             raise ValueError(f"Constraint {name} does not exist")
         return self.constraints[name]
 
-    def remove_constraint(self, name: str) -> ConstraintAbs:
-        if name not in self.constraints.keys():
-            raise ValueError(f"Constraint {name} does not exist")
-        return self.constraints.pop(name)
-
     def get_var(self, name: str) -> Symbol:
         return self.variables[name].var
 

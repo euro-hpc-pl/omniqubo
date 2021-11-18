@@ -6,7 +6,7 @@ from docplex.mp.linear import ConstantExpr, LinearExpr, MonomialExpr, ZeroExpr
 from docplex.mp.model import Model
 from docplex.mp.quad import QuadExpr
 
-from ..sympyopt import INEQ_GEQ_SENSE, INEQ_LEQ_SENSE, ConstraintEq, ConstraintIneq, SympyOpt
+from ..sympyopt import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq, SympyOpt
 from .converter import ConvertToSymoptAbs
 
 
@@ -23,7 +23,7 @@ class DocplexToSymopt(ConvertToSymoptAbs):
                 elif sense == ComparisonType.GE:
                     sympyopt.add_constraint(ConstraintIneq(left, right, INEQ_GEQ_SENSE), name=name)
                 elif sense == ComparisonType.LE:
-                    sympyopt.add_constraint(ConstraintIneq(left, right, INEQ_LEQ_SENSE), name=name)
+                    sympyopt.add_constraint(ConstraintIneq(left, right), name=name)
                 else:
                     ValueError(f"Unknown sense {sense}")  # pragma: no cover
             else:
