@@ -1,7 +1,6 @@
 from typing import Dict
 
 from sympy import Expr, Integer, S, Symbol, core, expand, total_degree
-from sympy.core.evalf import INF
 
 from .constraints import ConstraintAbs, ConstraintEq, ConstraintIneq, _list_unknown_vars
 from .utils import _approx_sympy_expr, gen_random_str
@@ -76,11 +75,6 @@ class SympyOpt:
         return {name: var.var for name, var in self.variables.items()}
 
     def int_var(self, name: str, lb: int = None, ub: int = None) -> Symbol:
-        if lb is None:
-            lb = -INF
-        if ub is None:
-            ub = -INF
-        assert lb < ub
         if name in self.variables.keys():
             raise ValueError(f"Variable {name} already exists")
         var = IntVar(name, lb, ub)
@@ -88,12 +82,6 @@ class SympyOpt:
         return var.var
 
     def real_var(self, name: str, lb: float = None, ub: float = None) -> Symbol:
-        if lb is None:
-            lb = -INF
-        if ub is None:
-            ub = -INF
-        raise NotImplementedError("Planned at later versions")
-        assert ub > lb
         if name in self.variables.keys():
             raise ValueError(f"Variable {name} already exists")
         var = RealVar(name, lb, ub)

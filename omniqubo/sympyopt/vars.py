@@ -11,7 +11,11 @@ class VarAbs(ABC):
 
 
 class IntVar(VarAbs):
-    def __init__(self, name: str, lb: int, ub: int) -> None:
+    def __init__(self, name: str, lb: int = None, ub: int = None) -> None:
+        if lb is None:
+            lb = -INF
+        if ub is None:
+            ub = INF
         assert lb < ub
         self.lb = lb
         self.ub = ub
@@ -20,6 +24,7 @@ class IntVar(VarAbs):
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, IntVar):
             return False
+        print()
         return self.name == o.name and self.lb == o.lb and self.ub == o.ub
 
     def __str__(self) -> str:

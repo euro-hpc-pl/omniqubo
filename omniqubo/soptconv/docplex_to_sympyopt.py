@@ -70,10 +70,7 @@ class DocplexToSymopt(ConvertToSymoptAbs):
             if var.cplex_typecode == "B":  # bit
                 sympyopt.bit_var(name)
             elif var.cplex_typecode == "I":  # integer
-                if var._lb == 0 and var._ub == 1:  # don't save bit-integers as integers
-                    sympyopt.bit_var(name)
-                else:
-                    sympyopt.int_var(name, lb=var._lb, ub=var.ub)
+                sympyopt.int_var(name, lb=var._lb, ub=var.ub)
             elif var.cplex_typecode == "C":  # continuous
                 sympyopt.real_var(name, lb=var._lb, ub=var.ub)
             elif var.cplex_typecode == "S":  # semi-continuous
