@@ -25,10 +25,9 @@ class DocplexToSymopt(ConvertToSymoptAbs):
                 elif sense == ComparisonType.LE:
                     sympyopt.add_constraint(ConstraintIneq(left, right, INEQ_LEQ_SENSE), name=name)
                 else:
-                    ValueError(f"Unknown sense {sense}")
-
+                    ValueError(f"Unknown sense {sense}")  # pragma: no cover
             else:
-                ValueError(f"Constraint type {type(cstr)} not implemented")
+                ValueError(f"Constraint type {type(cstr)} not implemented")  # pragma: no cover
 
     def _get_expr(self, obj: Expr, sympyopt: SympyOpt) -> sympy.Expr:
         expr = sympy.S(0)
@@ -53,7 +52,7 @@ class DocplexToSymopt(ConvertToSymoptAbs):
                 expr += val * sympyopt.get_var(var.name)
             expr += obj._linexpr._constant
         else:
-            raise ValueError(f"New objective type {type(obj)}, {obj}. Please contact authors")
+            raise ValueError(f"Unknown objective type {type(obj)}, {obj}")  # pragma: no cover
         return expr
 
     def _add_objective(self, model: Model, sympyopt: SympyOpt) -> None:
@@ -78,7 +77,7 @@ class DocplexToSymopt(ConvertToSymoptAbs):
             elif var.cplex_typecode == "N":  # semi-integer
                 raise NotImplementedError("Docplex semi-integer types not implemented")
             else:
-                raise ValueError(f"cplex_typecode {var.cplex_typecode} - please contact authors")
+                raise ValueError(f"Unknown cplex_typecode {var.cplex_typecode}")  # pragma: no cover
 
     def convert(self, model: Model) -> SympyOpt:
         sympyopt = SympyOpt()
@@ -89,7 +88,6 @@ class DocplexToSymopt(ConvertToSymoptAbs):
 
     def can_convert(self, model: Model) -> bool:
         for var in model._vars_by_name.values():
-            if var.cplex_typecode in "SNC":
+            if var.cplex_typecode not in "BCI":
                 return False
-        # TODO check the constraints
         return True
