@@ -2,6 +2,7 @@ from copy import deepcopy
 
 import pytest
 from docplex.mp.model import Model
+from sympy import sin
 
 from omniqubo.omniqubo.omniqubo import Omniqubo
 from omniqubo.sympyopt import SympyOpt
@@ -250,6 +251,51 @@ class TestOmniqubo:
         assert not omniqubo.is_qubo()
         assert not omniqubo.is_hobo()
         assert omniqubo.is_pp()
+        assert not omniqubo.is_qip()
+        assert not omniqubo.is_lip()
+        assert not omniqubo.is_qcqp()
+        assert not omniqubo.is_ising()
+
+    def test_nonpoly(self):
+        sopt = SympyOpt()
+        x = sopt.bit_var("x")
+        sopt.minimize(sin(x))
+        omniqubo = Omniqubo(sopt)
+
+        assert omniqubo.is_bm()
+        assert not omniqubo.is_qubo()
+        assert not omniqubo.is_hobo()
+        assert not omniqubo.is_pp()
+        assert not omniqubo.is_qip()
+        assert not omniqubo.is_lip()
+        assert not omniqubo.is_qcqp()
+        assert not omniqubo.is_ising()
+
+        sopt = SympyOpt()
+        x = sopt.bit_var("x")
+        sopt.minimize(x)
+        sopt.add_constraint(ConstraintEq(2 * sin(x), 1))
+        omniqubo = Omniqubo(sopt)
+
+        assert omniqubo.is_bm()
+        assert not omniqubo.is_qubo()
+        assert not omniqubo.is_hobo()
+        assert not omniqubo.is_pp()
+        assert not omniqubo.is_qip()
+        assert not omniqubo.is_lip()
+        assert not omniqubo.is_qcqp()
+        assert not omniqubo.is_ising()
+
+        sopt = SympyOpt()
+        x = sopt.int_var("x")
+        sopt.minimize(x)
+        sopt.add_constraint(ConstraintEq(2 * sin(x), 1))
+        omniqubo = Omniqubo(sopt)
+
+        assert not omniqubo.is_bm()
+        assert not omniqubo.is_qubo()
+        assert not omniqubo.is_hobo()
+        assert not omniqubo.is_pp()
         assert not omniqubo.is_qip()
         assert not omniqubo.is_lip()
         assert not omniqubo.is_qcqp()
