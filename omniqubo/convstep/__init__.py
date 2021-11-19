@@ -1,7 +1,7 @@
 from .eq_to_objective import EqToObj
 from .simple_manipulation import MakeMax, MakeMin, RemoveConstraint
 from .stepconvclass import StepConvAbs
-from .varreplace import VarOneHot, VarReplace
+from .varreplace import TrivialIntToBit, VarOneHot, VarReplace
 
 __all__ = [
     "StepConvAbs",
@@ -11,4 +11,5 @@ __all__ = [
     "MakeMax",
     "MakeMin",
     "RemoveConstraint",
+    "TrivialIntToBit",
 ]

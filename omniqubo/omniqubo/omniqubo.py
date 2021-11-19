@@ -2,12 +2,13 @@ import re
 from copy import deepcopy
 from typing import List
 
+from omniqubo.convstep.varreplace import BitToSpin, TrivialIntToBit, VarReplace
 from omniqubo.sympyopt.constraints import ConstraintEq
 
 from ..convstep import EqToObj, MakeMax, MakeMin, RemoveConstraint, StepConvAbs, VarOneHot
 from ..soptconv import convert_to_sympyopt
 from ..sympyopt import SympyOpt
-from ..sympyopt.vars import IntVar
+from ..sympyopt.vars import BitVar, IntVar
 
 DEFAULT_PENALTY_VALUE = 1000.0
 
@@ -85,7 +86,9 @@ class Omniqubo:
                 self._convert(c)
         return self.model
 
-    def int_to_bits(self, mode: str, name: str = None, regname: str = None) -> SympyOpt:
+    def int_to_bits(
+        self, mode: str, name: str = None, regname: str = None, trivial_conv: bool = True
+    ) -> SympyOpt:
         assert name is None or regname is None
 
         conv = None
@@ -102,10 +105,34 @@ class Omniqubo:
             if not regname:
                 regname = ".*"
             _rex = re.compile(regname)
-            conv_to_do = []
+            conv_to_do = []  # type: List[VarReplace]
             for name, var in self.model.variables.items():
                 if _rex.fullmatch(name) and isinstance(var, IntVar):
-                    conv_to_do.append(conv(var))
+                    if not trivial_conv or var.ub - var.lb > 1:
+                        conv_to_do.append(conv(var))
+                    else:  # var.ub - var.lb == 1
+                        conv_to_do.append(TrivialIntToBit(var))
+            for c in conv_to_do:
+                self._convert(c)
+        return self.model
+
+    def bit_to_spin(self, name: str = None, regname: str = None, reversed: bool = None) -> SympyOpt:
+        assert name is None or regname is None
+        if reversed is None:
+            reversed = True
+
+        if name:
+            intvar = self.model.variables[name]
+            assert isinstance(intvar, BitVar)
+            self._convert(BitToSpin(intvar, reversed=reversed))
+        else:
+            if not regname:
+                regname = ".*"
+            _rex = re.compile(regname)
+            conv_to_do = []
+            for name, var in self.model.variables.items():
+                if _rex.fullmatch(name) and isinstance(var, BitVar):
+                    conv_to_do.append(BitToSpin(var, reversed=reversed))
             for c in conv_to_do:
                 self._convert(c)
         return self.model

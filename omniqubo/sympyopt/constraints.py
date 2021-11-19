@@ -56,13 +56,13 @@ class ConstraintEq(ConstraintAbs):
         dif = expand(expr1 - expr2)
         for a in preorder_traversal(dif):
             if isinstance(a, Float):
-                dif = dif.subs(a, round(a, 15))
+                dif = dif.xreplace(a, round(a, 15))
         if dif == 0:
             return True
         dif = expand(expr1 + expr2)
         for a in preorder_traversal(dif):
             if isinstance(a, Float):
-                dif = dif.subs(a, round(a, 15))
+                dif = dif.xreplace(a, round(a, 15))
         return dif == 0
 
     def __str__(self) -> str:
