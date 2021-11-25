@@ -1,3 +1,7 @@
+import warnings
+
+from pandas import DataFrame
+
 from omniqubo.sympyopt import SYMPYOPT_MIN_SENSE
 from omniqubo.sympyopt.constraints import ConstraintEq
 from omniqubo.sympyopt.sympyopt import SympyOpt
@@ -12,10 +16,11 @@ class EqToObj(StepConvAbs):
         # TODO warning for 0 penalty
         self.penalty = penalty
 
-    def interpret(self, sample):
+    def interpret(self, sample: DataFrame) -> DataFrame:
+        warnings.warn("EqToObj is not analysing feasibility")
         return sample
 
-    def convert(self, model: SympyOpt):
+    def convert(self, model: SympyOpt) -> SympyOpt:
         assert self.name in model.constraints.keys()
         c = model.constraints[self.name]
         assert isinstance(c, ConstraintEq)

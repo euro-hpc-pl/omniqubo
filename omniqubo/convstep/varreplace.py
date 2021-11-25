@@ -1,5 +1,7 @@
 from abc import abstractmethod
 
+import numpy as np
+from pandas.core.frame import DataFrame
 from sympy import Expr
 from sympy.core.evalf import INF
 
@@ -46,8 +48,26 @@ class VarOneHot(VarReplace):
     def __init__(self, var: IntVar) -> None:
         super().__init__(var)
 
-    def interpret(self, sample):
-        raise NotImplementedError()
+    def interpret(self, sample: DataFrame) -> DataFrame:
+        name = self.var.name
+        lb = self.var.lb
+        ub = self.var.ub
+
+        names = [f"{name}{INTER_STR_SEP}OH_{i}" for i in range(ub - lb + 1)]
+        sample["feasible_tmp"] = sample.apply(lambda row: sum(row[n] for n in names) == 1, axis=1)
+        expr_comp = (
+            lambda row: lb + [row[n] for n in names].index(1) if row["feasible_tmp"] else np.nan
+        )
+        sample[name] = sample.apply(
+            expr_comp,
+            axis=1,
+        )
+
+        sample["feasible"] &= sample.pop("feasible_tmp")
+        for n in names:
+            sample.pop(n)
+
+        return sample  # hack to avoid defragmented
 
     def _get_expr_add_constr(self, model: SympyOpt) -> Expr:
         name = self.var.name
@@ -71,8 +91,10 @@ class TrivialIntToBit(VarReplace):
     def __init__(self, var: IntVar) -> None:
         super().__init__(var)
 
-    def interpret(self, sample):
-        raise NotImplementedError()
+    def interpret(self, sample: DataFrame) -> DataFrame:
+        name = f"{self.var.name}{INTER_STR_SEP}itb"
+        sample.rename(columns={name: self.var.name})
+        return sample
 
     def _get_expr_add_constr(self, model: SympyOpt) -> Expr:
         var = model.bit_var(f"{self.var.name}{INTER_STR_SEP}itb")
@@ -87,7 +109,7 @@ class BitToSpin(VarReplace):
         super().__init__(var)
         self.reversed = reversed
 
-    def interpret(self, sample):
+    def interpret(self, sample: DataFrame) -> DataFrame:
         raise NotImplementedError()
 
     def _get_expr_add_constr(self, model: SympyOpt) -> Expr:

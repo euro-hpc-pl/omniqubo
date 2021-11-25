@@ -2,11 +2,13 @@ import re
 from copy import deepcopy
 from typing import List
 
+from pandas.core.frame import DataFrame
+
 from omniqubo.convstep.varreplace import BitToSpin, TrivialIntToBit, VarReplace
 from omniqubo.sympyopt.constraints import ConstraintEq
 
 from ..convstep import EqToObj, MakeMax, MakeMin, RemoveConstraint, StepConvAbs, VarOneHot
-from ..soptconv import convert_to_sympyopt
+from ..soptconv import SympyOptToDimod, convert_to_sympyopt
 from ..sympyopt import SympyOpt
 from ..sympyopt.vars import BitVar, IntVar
 
@@ -28,8 +30,10 @@ class Omniqubo:
             self.model_logs.append(deepcopy(self.model))
         return self.model
 
-    def interpret(self, samples, general_form: bool = True):
-        raise NotImplementedError()
+    def interpret(self, samples: DataFrame) -> DataFrame:
+        for log in reversed(self.logs):
+            samples = log.interpret(samples)
+        return samples
 
     def to_qubo(self):
         raise NotImplementedError()
@@ -38,7 +42,10 @@ class Omniqubo:
         raise NotImplementedError()
 
     def export(self, mode: str):
-        raise NotImplementedError()
+        if mode == "bqm":
+            return SympyOptToDimod().convert(self.model)
+        else:
+            raise ValueError(f"Unknown mode {mode}")
 
     def make_max(self) -> SympyOpt:
         self._convert(MakeMax())

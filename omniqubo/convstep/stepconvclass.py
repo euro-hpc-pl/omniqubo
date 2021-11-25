@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from pandas.core.frame import DataFrame
+
 from omniqubo.sympyopt.sympyopt import SympyOpt
 
 
@@ -9,9 +11,9 @@ class StepConvAbs(ABC):
         pass
 
     @abstractmethod
-    def interpret(self, sample):
+    def interpret(self, sample: DataFrame) -> DataFrame:
         pass
 
     @abstractmethod
-    def convert(self, model: SympyOpt):
+    def convert(self, model: SympyOpt) -> SympyOpt:
         pass

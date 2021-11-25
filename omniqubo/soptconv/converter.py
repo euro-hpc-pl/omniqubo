@@ -14,3 +14,16 @@ class ConvertToSymoptAbs(ABC):
     @abstractmethod
     def can_convert(self, model) -> bool:
         pass
+
+
+class ConvertFromSymoptAbs(ABC):
+    def __init__(self) -> None:
+        pass
+
+    @abstractmethod
+    def convert(self, model: SympyOpt):
+        pass
+
+    @abstractmethod
+    def can_convert(self, model: SympyOpt) -> bool:
+        pass
