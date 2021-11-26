@@ -5,20 +5,20 @@ default_stages: [commit, push]
 
 repos:
   - repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+    rev: 5.8.0
     hooks:
       - id: isort
         args: ["--check"]
 
   - repo: https://github.com/ambv/black
-    rev: 21.10b0
+    rev: 20.8b1
     hooks:
       - id: black
         args: ["--check"]
         language_version: python3.9
 
   - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.9.0
+    rev: 3.9.1
     hooks:
       - id: flake8
 
