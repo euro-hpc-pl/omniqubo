@@ -43,3 +43,4 @@ jobs:
           use-mypy: true
           use-black: true
           use-isort: true
+          extra-mypy-options: --ignore-missing-imports --namespace-packages
