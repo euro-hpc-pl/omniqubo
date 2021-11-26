@@ -14,16 +14,14 @@ line_length = 100
 profile = "black"
 filter_files = true
 
-[mypy-sympy.*]
-ignore_missing_imports = True
+[[tool.mypy.overrides]]
+module = [
+    "sympy",
+    "dimod",
+    "docplex",
+    "pandas"
+]
+ignore_missing_imports = true
 
-[mypy-dimod.*]
-ignore_missing_imports = True
-
-[mypy-pandas.*]
-ignore_missing_imports = True
-
-[mypy-docplex.*]
-ignore_missing_imports = True
 
 
