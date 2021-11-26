@@ -13,3 +13,17 @@ exclude = '''
 line_length = 100
 profile = "black"
 filter_files = true
+
+[mypy-sympy.*]
+ignore_missing_imports = True
+
+[mypy-dimod.*]
+ignore_missing_imports = True
+
+[mypy-pandas.*]
+ignore_missing_imports = True
+
+[mypy-docplex.*]
+ignore_missing_imports = True
+
+
