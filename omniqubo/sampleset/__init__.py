@@ -1,3 +1,3 @@
-from .dimod import dimod_import
+from .dimod_import import dimod_import
 
 __all__ = ["dimod_import"]

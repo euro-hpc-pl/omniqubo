@@ -3,14 +3,14 @@ from typing import Dict
 import dimod
 from sympy import Expr, core
 
-from omniqubo.sympyopt.sympyopt import SYMPYOPT_MIN_SENSE, SympyOpt
+from omniqubo.models.transpiler import TransiplerAbs
 
-from .converter import ConvertFromSymoptAbs
+from ..sympyopt import SYMPYOPT_MIN_SENSE, SympyOpt
 
 
-class SympyOptToDimod(ConvertFromSymoptAbs):
+class SympyOptToDimod(TransiplerAbs):
     def __init__(self, mode=None) -> None:
-        if mode is not None:
+        if mode is None:
             mode = "bqm"
         assert mode == "bqm"
         self.mode = mode

@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 
 from pandas.core.frame import DataFrame
 
-from omniqubo.sympyopt.sympyopt import SympyOpt
+from .model import ModelAbs
 
 
-class StepConvAbs(ABC):
+class ConverterAbs(ABC):
     @abstractmethod
     def __init__(self) -> None:
         pass
@@ -15,5 +15,5 @@ class StepConvAbs(ABC):
         pass
 
     @abstractmethod
-    def convert(self, model: SympyOpt) -> SympyOpt:
+    def convert(self, model) -> ModelAbs:
         pass

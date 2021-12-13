@@ -1,8 +1,12 @@
 from copy import deepcopy
 
-from omniqubo.convstep import MakeMax, MakeMin, RemoveConstraint
-from omniqubo.sympyopt import SympyOpt
-from omniqubo.sympyopt.constraints import ConstraintEq
+from omniqubo.models.sympyopt.constraints import ConstraintEq
+from omniqubo.models.sympyopt.converter.simple_manipulation import (
+    MakeMax,
+    MakeMin,
+    RemoveConstraint,
+)
+from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
 
 class TestOneHot:

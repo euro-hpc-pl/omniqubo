@@ -4,26 +4,27 @@ from typing import List
 
 from pandas.core.frame import DataFrame
 
-from omniqubo.convstep.varreplace import BitToSpin, TrivialIntToBit, VarReplace
-from omniqubo.sympyopt.constraints import ConstraintEq
-
-from ..convstep import EqToObj, MakeMax, MakeMin, RemoveConstraint, StepConvAbs, VarOneHot
-from ..soptconv import SympyOptToDimod, convert_to_sympyopt
-from ..sympyopt import SympyOpt
-from ..sympyopt.vars import BitVar, IntVar
-
-DEFAULT_PENALTY_VALUE = 1000.0
+from .constants import DEFAULT_PENALTY_VALUE
+from .models.sympyopt.constraints import ConstraintEq
+from .models.sympyopt.converter.abs_converter import ConverterSympyOptAbs
+from .models.sympyopt.converter.eq_to_objective import EqToObj
+from .models.sympyopt.converter.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
+from .models.sympyopt.converter.varreplace import BitToSpin, TrivialIntToBit, VarOneHot, VarReplace
+from .models.sympyopt.sympyopt import SympyOpt
+from .models.sympyopt.transpiler.sympyopt_to_bqm import SympyOptToDimod
+from .models.sympyopt.transpiler.transpiler import transpile
+from .models.sympyopt.vars import BitVar, IntVar
 
 
 class Omniqubo:
     def __init__(self, model, verbatim_logs: bool = False) -> None:
         self.orig_model = deepcopy(model)
-        self.model = convert_to_sympyopt(self.orig_model)  # type: SympyOpt
-        self.logs = []  # type: List[StepConvAbs]
+        self.model = transpile(self.orig_model)  # type: SympyOpt
+        self.logs = []  # type: List[ConverterSympyOptAbs]
         self.model_logs = []  # type: List[SympyOpt]
         self.verbatim_logs = verbatim_logs
 
-    def _convert(self, convstep: StepConvAbs):
+    def _convert(self, convstep: ConverterSympyOptAbs):
         self.logs.append(convstep)
         self.model = convstep.convert(self.model)
         if self.verbatim_logs:

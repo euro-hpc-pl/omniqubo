@@ -1,16 +1,21 @@
+from __future__ import annotations
+
 from typing import Dict
 
 from sympy import Expr, Integer, S, Symbol, core, expand, total_degree
 
+import omniqubo.models.utils as utils
+
+from ..model import ModelAbs
 from .constraints import ConstraintAbs, ConstraintEq, ConstraintIneq, _list_unknown_vars
-from .utils import _approx_sympy_expr, gen_random_str
+from .utils import _approx_sympy_expr
 from .vars import BitVar, IntVar, RealVar, SpinVar, VarAbs
 
 SYMPYOPT_MIN_SENSE = "min"
 SYMPYOPT_MAX_SENSE = "max"
 
 
-class SympyOpt:
+class SympyOpt(ModelAbs):
     def __init__(self) -> None:
         self.constraints = dict()  # type: Dict[str,ConstraintAbs]
         self.objective = S(0)
@@ -42,9 +47,9 @@ class SympyOpt:
         if name is None:
             # HACK: (optional) function may check the probability of getting string,
             # and if needed increase the name length
-            name = gen_random_str()
+            name = utils.gen_random_str()
             while name in self.constraints.keys():
-                name = gen_random_str()
+                name = utils.gen_random_str()
         unknown_vars = constr._list_unknown_vars(self.variables.keys())
         if len(unknown_vars) != 0:
             raise AssertionError(

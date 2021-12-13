@@ -1,21 +1,22 @@
 import pytest
 from docplex.mp.model import Model
 
-from omniqubo.soptconv.docplex_to_sympyopt import DocplexToSymopt
-from omniqubo.sympyopt import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq, SympyOpt
-from omniqubo.sympyopt.vars import BitVar, IntVar, RealVar
+from omniqubo.models.sympyopt.constraints import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq
+from omniqubo.models.sympyopt.sympyopt import SympyOpt
+from omniqubo.models.sympyopt.transpiler.docplex_to_sympyopt import DocplexToSympyopt
+from omniqubo.models.sympyopt.vars import BitVar, IntVar, RealVar
 
 
-class TestDocplexToSymoptObjective:
+class TestDocplexToSympyoptObjective:
     def test_zero_objective(self):
         mdl = Model(name="tsp")
-        sympymodel = DocplexToSymopt().convert(mdl)
+        sympymodel = DocplexToSympyopt().convert(mdl)
         assert sympymodel == SympyOpt()
 
     def test_const_objective(self):
         mdl = Model(name="tsp")
         mdl.minimize(2)
-        sympymodel = DocplexToSymopt().convert(mdl)
+        sympymodel = DocplexToSympyopt().convert(mdl)
         sympyopt = SympyOpt()
         sympyopt.minimize(2)
         assert sympymodel == sympyopt
@@ -23,7 +24,7 @@ class TestDocplexToSymoptObjective:
     def test_max_const_objectives(self):
         mdl = Model(name="tsp")
         mdl.maximize(-1)
-        sympymodel = DocplexToSymopt().convert(mdl)
+        sympymodel = DocplexToSympyopt().convert(mdl)
         sympyopt = SympyOpt()
         sympyopt.maximize(-1)
         assert sympymodel == sympyopt
@@ -32,7 +33,7 @@ class TestDocplexToSymoptObjective:
         mdl = Model(name="tsp")
         x = mdl.binary_var("x")
         mdl.minimize(10.5 * x)
-        sympymodel = DocplexToSymopt().convert(mdl)
+        sympymodel = DocplexToSympyopt().convert(mdl)
 
         sympyopt = SympyOpt()
         xx = sympyopt.bit_var("x")
@@ -44,7 +45,7 @@ class TestDocplexToSymoptObjective:
         x = mdl.binary_var("x")
         y = mdl.integer_var(lb=-2, ub=10, name="y")
         mdl.minimize(2 * x - 3 * y + 2)
-        sympymodel = DocplexToSymopt().convert(mdl)
+        sympymodel = DocplexToSympyopt().convert(mdl)
 
         sympyopt = SympyOpt()
         xx = sympyopt.bit_var("x")
@@ -57,7 +58,7 @@ class TestDocplexToSymoptObjective:
         x = mdl.binary_var("x")
         y = mdl.integer_var(lb=-2, ub=10, name="y")
         mdl.minimize((2 * x - 3 * y + 2) ** 2)
-        sympymodel = DocplexToSymopt().convert(mdl)
+        sympymodel = DocplexToSympyopt().convert(mdl)
 
         sympyopt = SympyOpt()
         xx = sympyopt.bit_var("x")
@@ -66,7 +67,7 @@ class TestDocplexToSymoptObjective:
         assert sympymodel == sympyopt
 
 
-class TestDocplexToSymoptCanCheck:
+class TestDocplexToSympyoptCanCheck:
     def test_int(self):
         mdl = Model(name="tsp")
         x = mdl.integer_var(-2, 4, "x")
@@ -76,60 +77,60 @@ class TestDocplexToSymoptCanCheck:
         mdl.add_constraint((2 * x + 4 * y + z) ** 2 <= 2)
         mdl.add_constraint(2 * x + 4 * y - z >= 0)
         mdl.add_constraint(2 * x + 4 * y == 0)
-        DocplexToSymopt().convert(mdl)  # should not from an error
-        assert DocplexToSymopt().can_convert(mdl)
+        DocplexToSympyopt().convert(mdl)  # should not from an error
+        assert DocplexToSympyopt().can_convert(mdl)
 
     def test_semireal(self):
         mdl = Model(name="tsp")
         y = mdl.semicontinuous_var(lb=2, name="y")
         mdl.minimize(2 * y)
 
-        assert not DocplexToSymopt().can_convert(mdl)
+        assert not DocplexToSympyopt().can_convert(mdl)
         with pytest.raises(NotImplementedError):
-            DocplexToSymopt().convert(mdl)
+            DocplexToSympyopt().convert(mdl)
 
     def test_semiint(self):
         mdl = Model(name="tsp")
         y = mdl.semiinteger_var(lb=2, name="y")
         mdl.minimize(2 * y)
 
-        assert not DocplexToSymopt().can_convert(mdl)
+        assert not DocplexToSympyopt().can_convert(mdl)
         with pytest.raises(NotImplementedError):
-            DocplexToSymopt().convert(mdl)
+            DocplexToSympyopt().convert(mdl)
 
 
-class TestDocplexToSymoptTypes:
+class TestDocplexToSympyoptTypes:
     def test_bit(self):
         mdl = Model(name="tsp")
         x = mdl.binary_var("x")
         mdl.minimize(2 * x)
-        sympyopt = DocplexToSymopt().convert(mdl)
+        sympyopt = DocplexToSympyopt().convert(mdl)
         assert sympyopt.variables["x"] == BitVar("x")
 
     def test_int(self):
         mdl = Model(name="tsp")
         x = mdl.integer_var(-2, 4, "x")
         mdl.minimize(2 * x)
-        sympyopt = DocplexToSymopt().convert(mdl)
+        sympyopt = DocplexToSympyopt().convert(mdl)
         assert sympyopt.variables["x"] == IntVar("x", -2, 4)
 
         mdl = Model(name="tsp")
         y = mdl.integer_var(lb=-2, name="y")
         mdl.minimize(2 * y)
-        sympyopt = DocplexToSymopt().convert(mdl)
+        sympyopt = DocplexToSympyopt().convert(mdl)
         assert sympyopt.variables["y"] == IntVar(lb=-2, ub=1e20, name="y")
 
     def test_real(self):
         mdl = Model(name="tsp")
         y = mdl.continuous_var(lb=-2.5, ub=3.1, name="y")
         mdl.minimize(2 * y)
-        sympyopt = DocplexToSymopt().convert(mdl)
+        sympyopt = DocplexToSympyopt().convert(mdl)
         assert sympyopt.variables["y"] == RealVar(lb=-2.5, ub=3.1, name="y")
 
         mdl = Model(name="tsp")
         y = mdl.continuous_var(name="y")
         mdl.minimize(2 * y)
-        sympyopt = DocplexToSymopt().convert(mdl)
+        sympyopt = DocplexToSympyopt().convert(mdl)
         assert sympyopt.variables["y"] == RealVar(lb=0, ub=1e20, name="y")
 
     def test_semireal(self):
@@ -137,17 +138,17 @@ class TestDocplexToSymoptTypes:
         y = mdl.semicontinuous_var(lb=2, name="y")
         mdl.minimize(2 * y)
         with pytest.raises(NotImplementedError):
-            DocplexToSymopt().convert(mdl)
+            DocplexToSympyopt().convert(mdl)
 
     def test_semiint(self):
         mdl = Model(name="tsp")
         y = mdl.semiinteger_var(lb=2, name="y")
         mdl.minimize(2 * y)
         with pytest.raises(NotImplementedError):
-            DocplexToSymopt().convert(mdl)
+            DocplexToSympyopt().convert(mdl)
 
 
-class TestDocplexToSymoptConstraints:
+class TestDocplexToSympyoptConstraints:
     def test_lineareq_constraints(self):
         mdl = Model(name="tsp")
         x = mdl.binary_var("x")
@@ -156,7 +157,7 @@ class TestDocplexToSymoptConstraints:
         mdl.add_constraint(2 * x + 3 * y == 2, ctname="lin1")
         mdl.add_constraint(x + 10.5 * y == 1.1, ctname="lin2")
         mdl.add_constraint(y == 5, ctname="trivial")
-        sympymodel = DocplexToSymopt().convert(mdl)
+        sympymodel = DocplexToSympyopt().convert(mdl)
 
         sympyopt = SympyOpt()
         xx = sympyopt.bit_var("x")
@@ -174,7 +175,7 @@ class TestDocplexToSymoptConstraints:
         y = mdl.integer_var(lb=-2, ub=10, name="y")
         mdl.minimize(2 * x - 3 * y)
         mdl.add_constraint(2 * x + 3 * y == 2, ctname="lin1")
-        sympymodel = DocplexToSymopt().convert(mdl)
+        sympymodel = DocplexToSympyopt().convert(mdl)
 
         sympyopt = SympyOpt()
         xx = sympyopt.bit_var("x")
@@ -192,7 +193,7 @@ class TestDocplexToSymoptConstraints:
         mdl.add_constraint(2 * x + 3 * y >= 2, ctname="lin1")
         mdl.add_constraint(x + 10.5 * y <= 1.1, ctname="lin2")
         mdl.add_constraint(y == 5, ctname="trivial")
-        sympymodel = DocplexToSymopt().convert(mdl)
+        sympymodel = DocplexToSympyopt().convert(mdl)
 
         sympyopt = SympyOpt()
         xx = sympyopt.bit_var("x")
@@ -209,7 +210,7 @@ class TestDocplexToSymoptConstraints:
         x = mdl.binary_var("x")
         y = mdl.integer_var(lb=-2, ub=10, name="y")
         mdl.add_constraint(2 * x + 3 * y >= 2, ctname="lin1")
-        sympymodel = DocplexToSymopt().convert(mdl)
+        sympymodel = DocplexToSympyopt().convert(mdl)
 
         sympyopt = SympyOpt()
         xx = sympyopt.bit_var("x")
@@ -225,7 +226,7 @@ class TestDocplexToSymoptConstraints:
         mdl.minimize(2 * x - 3 * y)
         mdl.add_constraint(2 * x ** 2 + 3 * y == 2, ctname="quad1")
         mdl.add_constraint((x + 10.5 * y) ** 2 == 1.1, ctname="quad2")
-        sympymodel = DocplexToSymopt().convert(mdl)
+        sympymodel = DocplexToSympyopt().convert(mdl)
 
         sympyopt = SympyOpt()
         xx = sympyopt.bit_var("x")
@@ -243,7 +244,7 @@ class TestDocplexToSymoptConstraints:
         mdl.minimize(2 * x - 3 * y)
         mdl.add_constraint(2 * x ** 2 + 3 * y >= 2, ctname="quad1")
         mdl.add_constraint(1.1 <= (x + 10.5 * y) ** 2, ctname="quad2")
-        sympymodel = DocplexToSymopt().convert(mdl)
+        sympymodel = DocplexToSympyopt().convert(mdl)
 
         sympyopt = SympyOpt()
         xx = sympyopt.bit_var("x")

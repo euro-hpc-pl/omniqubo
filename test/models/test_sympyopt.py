@@ -1,6 +1,6 @@
 from sympy import S, sin, sympify
 
-from omniqubo.sympyopt import SympyOpt
+from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
 
 class TestSympySympyOpt:

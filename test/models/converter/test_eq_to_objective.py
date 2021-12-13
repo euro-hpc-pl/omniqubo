@@ -1,6 +1,6 @@
-from omniqubo.convstep import EqToObj
-from omniqubo.sympyopt import SympyOpt
-from omniqubo.sympyopt.constraints import ConstraintEq
+from omniqubo.models.sympyopt.constraints import ConstraintEq
+from omniqubo.models.sympyopt.converter.eq_to_objective import EqToObj
+from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
 
 class TestEqToObj:

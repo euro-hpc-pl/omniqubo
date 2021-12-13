@@ -1,4 +1,4 @@
-from omniqubo.sympyopt import SympyOpt
+from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
 
 class TestIntVar:

@@ -1,6 +1,6 @@
-from omniqubo.convstep import VarOneHot
-from omniqubo.sympyopt import SympyOpt
-from omniqubo.sympyopt.constraints import ConstraintEq
+from omniqubo.models.sympyopt.constraints import ConstraintEq
+from omniqubo.models.sympyopt.converter.varreplace import VarOneHot
+from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
 
 class TestOneHot:

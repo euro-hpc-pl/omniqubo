@@ -2,14 +2,12 @@ import warnings
 
 from pandas import DataFrame
 
-from omniqubo.sympyopt import SYMPYOPT_MIN_SENSE
-from omniqubo.sympyopt.constraints import ConstraintEq
-from omniqubo.sympyopt.sympyopt import SympyOpt
-
-from .stepconvclass import StepConvAbs
+from ..constraints import ConstraintEq
+from ..sympyopt import SYMPYOPT_MIN_SENSE, SympyOpt
+from .abs_converter import ConverterSympyOptAbs
 
 
-class EqToObj(StepConvAbs):
+class EqToObj(ConverterSympyOptAbs):
     def __init__(self, name: str, penalty: float) -> None:
         self.name = name
         assert penalty >= 0

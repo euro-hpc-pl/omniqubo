@@ -1,11 +1,10 @@
 from pandas import DataFrame
 
-from omniqubo.sympyopt import SYMPYOPT_MAX_SENSE, SYMPYOPT_MIN_SENSE, SympyOpt
+from ..sympyopt import SYMPYOPT_MAX_SENSE, SYMPYOPT_MIN_SENSE, SympyOpt
+from .abs_converter import ConverterSympyOptAbs
 
-from .stepconvclass import StepConvAbs
 
-
-class MakeMin(StepConvAbs):
+class MakeMin(ConverterSympyOptAbs):
     def __init__(self) -> None:
         pass
 
@@ -18,7 +17,7 @@ class MakeMin(StepConvAbs):
         return model
 
 
-class MakeMax(StepConvAbs):
+class MakeMax(ConverterSympyOptAbs):
     def __init__(self) -> None:
         pass
 
@@ -31,7 +30,7 @@ class MakeMax(StepConvAbs):
         return model
 
 
-class RemoveConstraint(StepConvAbs):
+class RemoveConstraint(ConverterSympyOptAbs):
     def __init__(self, name: str) -> None:
         self.name = name
         pass

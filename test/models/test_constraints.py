@@ -1,7 +1,7 @@
 import pytest
 
-from omniqubo.sympyopt import SympyOpt
-from omniqubo.sympyopt.constraints import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq
+from omniqubo.models.sympyopt.constraints import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq
+from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
 
 class TestConstraintEq:

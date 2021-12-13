@@ -6,11 +6,13 @@ from docplex.mp.linear import ConstantExpr, LinearExpr, MonomialExpr, ZeroExpr
 from docplex.mp.model import Model
 from docplex.mp.quad import QuadExpr
 
-from ..sympyopt import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq, SympyOpt
-from .converter import ConvertToSymoptAbs
+from omniqubo.models.transpiler import TransiplerAbs
+
+from ..constraints import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq
+from ..sympyopt import SympyOpt
 
 
-class DocplexToSymopt(ConvertToSymoptAbs):
+class DocplexToSympyopt(TransiplerAbs):
     def _add_constraints(self, model: Model, sympyopt: SympyOpt):
         for cstr in model.iter_constraints():
             if isinstance(cstr, (LinearConstraint, QuadraticConstraint)):
@@ -80,11 +82,11 @@ class DocplexToSymopt(ConvertToSymoptAbs):
                 raise ValueError(f"Unknown cplex_typecode {var.cplex_typecode}")  # pragma: no cover
 
     def convert(self, model: Model) -> SympyOpt:
-        sympyopt = SympyOpt()
-        self._add_variables(model, sympyopt)
-        self._add_objective(model, sympyopt)
-        self._add_constraints(model, sympyopt)
-        return sympyopt
+        sympy_model = SympyOpt()
+        self._add_variables(model, sympy_model)
+        self._add_objective(model, sympy_model)
+        self._add_constraints(model, sympy_model)
+        return sympy_model
 
     def can_convert(self, model: Model) -> bool:
         for var in model._vars_by_name.values():

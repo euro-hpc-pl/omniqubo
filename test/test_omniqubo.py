@@ -4,9 +4,9 @@ import pytest
 from docplex.mp.model import Model
 from sympy import sin
 
-from omniqubo.omniqubo.omniqubo import Omniqubo
-from omniqubo.sympyopt import SympyOpt
-from omniqubo.sympyopt.constraints import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq
+from omniqubo import Omniqubo
+from omniqubo.models.sympyopt.constraints import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq
+from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
 
 class TestOmniquboInit:
