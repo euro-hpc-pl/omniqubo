@@ -1,4 +1,4 @@
-name: Run quality checks
+name: Quality checks
 
 on: [push]
 
