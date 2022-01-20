@@ -8,45 +8,37 @@ from .abs_converter import ConverterSympyOptAbs
 
 
 class EqToObj(ConverterSympyOptAbs):
-    def __init__(self, name: str, penalty: float) -> None:
-        """
-        EqToObj transforms SympyOpt by removing the equality constraint f(x) = 0
-        and adding (penalty * f(x)**2) to objective function. Penalty should be
-        nonnegative.
+    """Converter for shifting the equality constraint to objective function.
 
-        Args:
-            name (str): name of the manipulated constraint
-            penalty (float): nonnegative value scaling the constraint
-        """
+    Converter which removes the constraint of the form f(x) = 0 and udpates
+    the objective function with penalty * f(x)**2, where penalty is a
+    nonnegative number. When interpreting it updates the feasibility of the
+    samples according to the removed constraint.
+
+    :param name: name of the constraint f(x) = 0
+    :param penalty: penalty used
+    """
+
+    def __init__(self, name: str, penalty: float) -> None:
         self.name = name
         assert penalty >= 0
         # TODO warning for 0 penalty
         self.penalty = penalty
 
-    def interpret(self, sample: DataFrame) -> DataFrame:
-        """
-        Interprets the optimization results. Sets feasibility in sample to false
-        if variables do not satisfy them
+    def interpret(self, samples: DataFrame) -> DataFrame:
+        """Interpret samples as either feasible or not.
 
-        Args:
-            sample (DataFrame): optimization results
-
-        Returns:
-            DataFrame: updated optimization results
+        :param samples: optimization results
+        :return: optimization result with updated `feasibility` attribute
         """
         warnings.warn("EqToObj is not analysing feasibility")
-        return sample
+        return samples
 
     def convert(self, model: SympyOpt) -> SympyOpt:
-        """
-        Transforms SympyOpt by removing the equality constraint f(x) = 0
-        and adding (penalty * f(x)**2) to objective function.
+        """Shift the constraint to objective function.
 
-        Args:
-            model (SympyOpt): input model
-
-        Returns:
-            SympyOpt: transformed model
+        :param model: model to transform
+        :return: transformed model
         """
         assert self.name in model.constraints.keys()
         c = model.constraints[self.name]

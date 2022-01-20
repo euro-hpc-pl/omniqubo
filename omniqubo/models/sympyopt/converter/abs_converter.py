@@ -8,41 +8,28 @@ from ..sympyopt import SympyOpt
 
 
 class ConverterSympyOptAbs(ConverterAbs):
-    """
-    Abstract type for converters changing SympyOpt models
-    """
+    """Abstract type for converters changing SympyOpt models."""
 
     @abstractmethod
     def __init__(self) -> None:
-        """
-        Abstract method. Should initialize the class
-        """
         pass
 
     @abstractmethod
-    def interpret(self, sample: DataFrame) -> DataFrame:
-        """
-        Abstract method. Should interpret the samples and
-        update them based on the form of transformation.
+    def interpret(self, samples: DataFrame) -> DataFrame:
+        """Transform samples based on the given converter.
 
-        Args:
-            sample (DataFrame): original samples
+        The interpret has to be design in correspondence to the convert method.
 
-        Returns:
-            DataFrame: transformed samples
+        :param sample: input samples
+        :return: transformed samples
         """
         pass
 
     @abstractmethod
     def convert(self, model: SympyOpt) -> SympyOpt:
-        """
-        Abstract method. Should change the model of type SympyOpt based on the
-        form of transformation.
+        """Convert the optimization model based on the converter method.
 
-        Args:
-            model (SympyOpt): original model
-
-        Returns:
-            SympyOpt: transformed model
+        :param model: model to be transformed
+        :return: transformed model
         """
         pass

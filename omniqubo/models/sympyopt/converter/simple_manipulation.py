@@ -5,35 +5,28 @@ from .abs_converter import ConverterSympyOptAbs
 
 
 class MakeMin(ConverterSympyOptAbs):
+    """Converter for making the optimization model a minimization problem.
+
+    If the optimization model is a minimization problem, do not do
+    anything, otherwise changes objective function f(x) into -f(x).
+    """
+
     def __init__(self) -> None:
-        """
-        MakeMin transforms the objective function f(x) into -f(x) for
-        maximization problems.
-        """
         pass
 
-    def interpret(self, sample: DataFrame) -> DataFrame:
-        """
-        Interprets the optimization results. Does not change the sample.
+    def interpret(self, samples: DataFrame) -> DataFrame:
+        """Return the same samples.
 
-        Args:
-            sample (DataFrame): optimization results
-
-        Returns:
-            DataFrame: the same optimization results
+        :param samples: optimized samples
+        :return: the same samples
         """
-        return sample
+        return samples
 
     def convert(self, model: SympyOpt) -> SympyOpt:
-        """
-        Transforms the objective function f(x) into -f(x) for
-        maximization problems.
+        """Make the optimization model a minimization problem.
 
-        Args:
-            model (SympyOpt): input model
-
-        Returns:
-            SympyOpt: transformed model
+        :param model: model to be transformed
+        :return: minimization model
         """
         if model.sense == SYMPYOPT_MAX_SENSE:
             model.minimize(-model.get_objective())
@@ -41,63 +34,60 @@ class MakeMin(ConverterSympyOptAbs):
 
 
 class MakeMax(ConverterSympyOptAbs):
+    """Converter for making the optimization model a maximization problem.
+
+    If the optimization model is a maximization problem, do not do
+    anything, otherwise changes objective function f(x) into -f(x).
+    """
+
     def __init__(self) -> None:
-        """
-        MakeMax transforms the objective function f(x) into -f(x) for
-        maximization problems.
-        """
         pass
 
-    def interpret(self, sample: DataFrame) -> DataFrame:
-        """
-        Interprets the optimization results. Does not change the sample.
+    def interpret(self, samples: DataFrame) -> DataFrame:
+        """Return the same samples.
 
-        Args:
-            sample (DataFrame): optimization results
-
-        Returns:
-            DataFrame: the same optimization results
+        :param samples: optimized samples
+        :return: the same samples
         """
-        return sample
+        return samples
 
     def convert(self, model: SympyOpt) -> SympyOpt:
+        """Make the optimization model a maximization problem.
+
+        :param model: model to be transformed
+        :return: maximization model
+        """
         if model.sense == SYMPYOPT_MIN_SENSE:
             model.maximize(-model.get_objective())
         return model
 
 
 class RemoveConstraint(ConverterSympyOptAbs):
-    def __init__(self, name: str) -> None:
-        """
-        RemoveConstraint remove a constraint.
+    """Removes the given constraint
 
-        Args:
-            name (str): name of constraint to be removed
-        """
+    Removes the constraint of given name if exists. Otherwise do not do
+    anything to the model.
+
+    :param name: the name of the removed model
+    """
+
+    def __init__(self, name: str) -> None:
         self.name = name
         pass
 
-    def interpret(self, sample: DataFrame) -> DataFrame:
-        """
-        Interprets the optimization results. Does not change the sample.
+    def interpret(self, samples: DataFrame) -> DataFrame:
+        """Return the same samples.
 
-        Args:
-            sample (DataFrame): optimization results
-
-        Returns:
-            DataFrame: the same optimization results
+        :param samples: optimized samples
+        :return: the same samples
         """
-        return sample
+        return samples
 
     def convert(self, model: SympyOpt) -> SympyOpt:
-        """
-        Remove a constraint self.name
+        """Removes the constraint with the given name.
 
-        Args:
-            model (SympyOpt): input model
-
-        Returns:
-            SympyOpt: model without the constraint
+        :param model: model to be transformed
+        :return: model with out the constraint
         """
         model.constraints.pop(self.name)
         return model
