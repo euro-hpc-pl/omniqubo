@@ -9,7 +9,16 @@ from ..sympyopt import SYMPYOPT_MIN_SENSE, SympyOpt
 
 
 class SympyOptToDimod(TransiplerAbs):
-    def __init__(self, mode=None) -> None:
+    """Transpile SympyOpt model into Dimod object
+
+    At the moment mode can only be None or "bqm", both resulting in returning
+    dimod.BinaryQuadraticModel. Transpiler assumes the output model is a QUBO
+    and it is minimization problem.
+
+    :param mode: type of the model returned by transpile
+    """
+
+    def __init__(self, mode: str = None) -> None:
         if mode is None:
             mode = "bqm"
         assert mode == "bqm"
@@ -31,8 +40,13 @@ class SympyOptToDimod(TransiplerAbs):
                 quadratic[(expr._args[1].name, expr._args[2].name)] = expr._args[0]
         return 0.0
 
-    def convert(self, model: SympyOpt) -> dimod.BinaryQuadraticModel:
-        assert self.can_convert(model)
+    def transpile(self, model: SympyOpt) -> dimod.BinaryQuadraticModel:
+        """Transpile SympyOpt model into BinaryQuadraticModel
+
+        :param model: model to be transpiled
+        :return: newly constructed model
+        """
+        assert self.can_transpile(model)
         obj = model.objective
         obj = model._bitspin_simp(obj)
         vartype = dimod.BINARY
@@ -47,5 +61,13 @@ class SympyOptToDimod(TransiplerAbs):
             offset += self._convert_monomial(obj, linear, quadratic)
         return dimod.BinaryQuadraticModel(linear, quadratic, offset=offset, vartype=vartype)
 
-    def can_convert(self, model: SympyOpt) -> bool:
+    def can_transpile(self, model: SympyOpt) -> bool:
+        """Check if SympyOpt can be transpiled
+
+        Currently equivalent to the fact that SympyOpt is minimization problem
+        and QUBO.
+
+        :param model: checked model
+        :return: flag denoting if model can be transpiled
+        """
         return model.is_qubo() and model.sense == SYMPYOPT_MIN_SENSE

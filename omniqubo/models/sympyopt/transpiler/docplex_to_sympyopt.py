@@ -13,6 +13,12 @@ from ..sympyopt import SympyOpt
 
 
 class DocplexToSympyopt(TransiplerAbs):
+    """Transpiler for transforming Docplex model into SymptOpt model.
+
+    Transpiler can transform any quadratic program with quadratic constraints,
+    which has bit, integer, or real variables only.
+    """
+
     def _add_constraints(self, model: Model, sympyopt: SympyOpt):
         for cstr in model.iter_constraints():
             if isinstance(cstr, (LinearConstraint, QuadraticConstraint)):
@@ -81,14 +87,27 @@ class DocplexToSympyopt(TransiplerAbs):
             else:
                 raise ValueError(f"Unknown cplex_typecode {var.cplex_typecode}")  # pragma: no cover
 
-    def convert(self, model: Model) -> SympyOpt:
+    def transpile(self, model: Model) -> SympyOpt:
+        """Transpile model into SympyOpt model.
+
+        :param model: model to be transpiled
+        :return: equivalent SympyOpt model
+        """
         sympy_model = SympyOpt()
         self._add_variables(model, sympy_model)
         self._add_objective(model, sympy_model)
         self._add_constraints(model, sympy_model)
         return sympy_model
 
-    def can_convert(self, model: Model) -> bool:
+    def can_transpile(self, model: Model) -> bool:
+        """Check if model can be transpiled.
+
+        Currently equivalent to the fact that all variables are bits, integers,
+        or real.
+
+        :type model: model to be transpiled
+        :return: flag denoting if model can be transpiled
+        """
         for var in model._vars_by_name.values():
             if var.cplex_typecode not in "BCI":
                 return False

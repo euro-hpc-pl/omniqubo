@@ -44,7 +44,7 @@ class Omniqubo:
 
     def export(self, mode: str):
         if mode == "bqm":
-            return SympyOptToDimod().convert(self.model)
+            return SympyOptToDimod().transpile(self.model)
         else:
             raise ValueError(f"Unknown mode {mode}")
 

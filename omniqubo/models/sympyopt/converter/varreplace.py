@@ -45,7 +45,7 @@ class VarReplace(ConverterSympyOptAbs):
 
     @abstractmethod
     def _check_model(self, model: sympyopt.SympyOpt) -> None:
-        """Checks if the model and variables are allowed to be transformed
+        """Checks if the model and variables are allowed to be transformed.
 
         :param model: the model to be transformed
         """
@@ -58,7 +58,7 @@ class VarReplace(ConverterSympyOptAbs):
                 c.exprright = c.exprright.xreplace({self.var.var: expr})
 
     def convert(self, model: sympyopt.SympyOpt) -> sympyopt.SympyOpt:
-        """replaces all occurrences for self.var and add constraints
+        """replaces all occurrences for self.var and add constraints.
 
         :param model: model to be transformed
         :return: transformed model
@@ -77,7 +77,7 @@ class VarReplace(ConverterSympyOptAbs):
 
 
 class VarOneHot(VarReplace):
-    """Replace integer variables with one-hot encoding
+    """Replace integer variables with one-hot encoding.
 
     Replaces integer variables with one-hot encoding, and add constraint that
     sum of new added bits is equal to one. For variable lb <= y <= ub
@@ -91,7 +91,7 @@ class VarOneHot(VarReplace):
         super().__init__(var)
 
     def interpret(self, samples: DataFrame) -> DataFrame:
-        """Compute the value of the previously removed integer variable
+        """Compute the value of the previously removed integer variable.
 
         Also remove corresponding binary variables and update feasibility
         record. If the sample does not meet the condition, np.nan is placed
@@ -138,7 +138,7 @@ class VarOneHot(VarReplace):
 
 
 class TrivialIntToBit(VarReplace):
-    """Replace integer with binary variable
+    """Replace integer with binary variable.
 
     Replaces integer variables y with binary variable lb + b, where
     lb <= y <= lb+1 is assumed. lb should be finite integer number.
@@ -150,7 +150,7 @@ class TrivialIntToBit(VarReplace):
         super().__init__(var)
 
     def interpret(self, samples: DataFrame) -> DataFrame:
-        """Compute the value of the previously removed integer variable
+        """Compute the value of the previously removed integer variable.
 
         Also remove corresponding binary variables.
 
@@ -171,7 +171,7 @@ class TrivialIntToBit(VarReplace):
 
 
 class BitToSpin(VarReplace):
-    """Replace binary variable with spin variable
+    """Replace binary variable with spin variable.
 
     Replaces binary variable b with spin variable s. The formula is (1-s)/2
     if reversed is set to true, or (1+s)/2 otherwise.
@@ -185,7 +185,7 @@ class BitToSpin(VarReplace):
         self.reversed = reversed
 
     def interpret(self, samples: DataFrame) -> DataFrame:
-        """Compute the value of the previously removed binary variable
+        """Compute the value of the previously removed binary variable.
 
         Also remove corresponding spin variable.
 

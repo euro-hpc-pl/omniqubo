@@ -14,24 +14,49 @@ def _list_unknown_vars(obj: Expr, vars: Iterable[str]) -> Iterable:
 
 
 class ConstraintAbs(ABC):
+    """Abstract class for constraints"""
+
     @abstractmethod
     def __init__(self) -> None:
         pass
 
     @abstractmethod
     def is_eq_constraint(self) -> bool:
+        """Check if the constraint is an equality.
+
+        Needs to be implemented
+        :return: the flag which states if constraints is an equality
+        """
         pass
 
     @abstractmethod
     def is_ineq_constraint(self) -> bool:
+        """Check if the constraint is an inequality.
+
+        Needs to be implemented
+        :return: the flag which states if constraints is an inequality
+        """
         pass
 
     @abstractmethod
     def _list_unknown_vars(self, vars: Iterable[str]) -> List[VarAbs]:
+        """Filters the list of variables into those NOT present in the constraint
+
+        :param vars: list of variables to be filtered
+        :return: filtered List of variables
+        """
         pass
 
 
 class ConstraintEq(ConstraintAbs):
+    """Equality constraint for SympyOpt.
+
+    Constraint of the form exprleft == exprright.
+
+    :param exprleft: The left expression of the equality
+    :param exprright: The right expression of the equality
+    """
+
     def __init__(self, exprleft: Expr, exprright: Expr) -> None:
         if not isinstance(exprleft, Expr):
             exprleft = S(exprleft)
@@ -42,12 +67,28 @@ class ConstraintEq(ConstraintAbs):
         self.exprright = deepcopy(exprright)
 
     def is_eq_constraint(self) -> bool:
+        """Check if the constraint is an equality.
+
+        :return: True
+        """
         return True
 
     def is_ineq_constraint(self) -> bool:
+        """Check if the constraint is an inequality.
+
+        :return: False
+        """
         return False
 
     def __eq__(self, sec: object) -> bool:
+        """Compares two constraints
+
+        The reference object needs to be ConstraintEq. f == g and
+        a == b are equivalent if (f - g) - (a - b) or (f - g) + (a - b) is
+        zero. The expressions should be sufficiently simple so that SymPy can
+        easily simplify them. Numbers appearing in the expressions are
+        approximated.
+        """
         if not isinstance(sec, ConstraintEq):
             return False
         expr1 = expand(self.exprleft - self.exprright)
@@ -79,6 +120,16 @@ INEQ_GEQ_SENSE = "geq"
 
 
 class ConstraintIneq(ConstraintAbs):
+    """Inequality constraint for SympyOpt.
+
+    Constraint of the form exprleft <= exprright for sense equal to
+    INEQ_LEQ_SENSE or exprleft >= exprright for sense equal to INEQ_GEQ_SENSE.
+
+    :param exprleft: The left expression of the inequality
+    :param exprright: The right expression of the inequality
+    :param sense: the sense of the inequality
+    """
+
     def __init__(self, exprleft: Expr, exprright: Expr, sense: str = None) -> None:
         if not isinstance(exprleft, Expr):
             exprleft = S(exprleft)
@@ -94,12 +145,29 @@ class ConstraintIneq(ConstraintAbs):
         self.sense = sense
 
     def is_eq_constraint(self) -> bool:
+        """Check if the constraint is an equality.
+
+        :return: False
+        """
         return False
 
     def is_ineq_constraint(self) -> bool:
+        """Check if the constraint is an inequality.
+
+        :return: True
+        """
         return True
 
     def __eq__(self, sec: object) -> bool:
+        """Compares two inequality constraints
+
+        The reference object needs to be ConstraintIneq. If senses are the same
+        for both inequalities, for example f >= g and
+        a >= b, then constraints are equivalent if (f - g) - (a - b) == 0.
+        Otherwise the condition is (f - g) + (a - b) >= 0 is approximately zero.
+        The expressions should be sufficiently simple so that SymPy can easily
+        simplify them. Numbers appearing in the expressions are approximated.
+        """
         if not isinstance(sec, ConstraintIneq):
             return False
         same_sense = self.sense == sec.sense
@@ -110,6 +178,9 @@ class ConstraintIneq(ConstraintAbs):
             dif = expand(expr1 - expr2)
         else:
             dif = expand(expr1 + expr2)
+        for a in preorder_traversal(dif):
+            if isinstance(a, Float):
+                dif = dif.xreplace({a: round(a, 15)})
         return _approx_sympy_expr(dif) == 0
 
     def __str__(self) -> str:

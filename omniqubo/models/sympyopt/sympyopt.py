@@ -16,6 +16,14 @@ SYMPYOPT_MAX_SENSE = "max"
 
 
 class SympyOpt(ModelAbs):
+    """Optimization modeling language based on Sympy.
+
+    The object consist of a dictionary of named constraint, objective function
+    which defaults to S(0), sense equal to SYMPYOPT_MIN_SENSE or
+    SYMPYOPT_MAX_SENSE and dictionary of variables. The primary use is for
+    transforming it into binary or other models.
+    """
+
     def __init__(self) -> None:
         self.constraints = dict()  # type: Dict[str,ConstraintAbs]
         self.objective = S(0)
@@ -28,20 +36,42 @@ class SympyOpt(ModelAbs):
 
         unknown_vars = list(_list_unknown_vars(obj, self.variables.keys()))
         if unknown_vars:
-            raise AssertionError(
+            raise ValueError(
                 f"Variables {unknown_vars} uknown. Use SympyOpt methods to define variables"
             )
         self.objective = obj
 
     def minimize(self, obj: Expr) -> None:
+        """Set the function to be minimized.
+
+        All variables must be already included in the model.
+
+        :param obj: minimized expression
+        :raises ValueError: if variables are not present in the model
+        """
         self.sense = SYMPYOPT_MIN_SENSE
         self._set_objective(obj)
 
     def maximize(self, obj: Expr) -> None:
+        """Set the function to be maximized.
+
+        All variables must be already included in the model.
+
+        :param obj: maximized expression
+        """
         self.sense = SYMPYOPT_MAX_SENSE
         self._set_objective(obj)
 
-    def add_constraint(self, constr: ConstraintAbs, name: str = None) -> None:
+    def add_constraint(self, constraint: ConstraintAbs, name: str = None) -> None:
+        """Add constraint to the model.
+
+        If name is not provided, a random string is generated. All variables
+        must be already included in the model.
+
+        :param constraint: The constraint
+        :param name: name of the constraint, defaults to random name
+        :raises ValueError: if variables are not present in the model
+        """
         if name in self.constraints.keys():
             raise ValueError(f"Constraint {name} already exists")
         if name is None:
@@ -50,31 +80,66 @@ class SympyOpt(ModelAbs):
             name = utils.gen_random_str()
             while name in self.constraints.keys():
                 name = utils.gen_random_str()
-        unknown_vars = constr._list_unknown_vars(self.variables.keys())
+        unknown_vars = constraint._list_unknown_vars(self.variables.keys())
         if len(unknown_vars) != 0:
             raise AssertionError(
                 f"Variables {unknown_vars} uknown. Use SympyOpt methods to define variables"
             )
-        self.constraints[name] = constr
+        self.constraints[name] = constraint
 
     def list_constraints(self) -> Dict[str, ConstraintAbs]:
+        """Return the dictionary of the constraints.
+
+        :return: Dictionary of the constraints.
+        """
         return self.constraints
 
     def get_objective(self) -> Expr:
+        """Return the objective function.
+
+        :return: The objective function
+        """
         return self.objective
 
     def get_constraint(self, name: str) -> ConstraintAbs:
-        if name not in self.constraints.keys():
-            raise ValueError(f"Constraint {name} does not exist")
+        """Return the constraint of the given name.
+
+        :param name: name of the constraint
+        :return: the constraint
+        """
         return self.constraints[name]
 
     def get_var(self, name: str) -> Symbol:
+        """Return the variable of the given name.
+
+        .. note::
+            a Sympy object is returned, not the object of class VarAbs
+
+        :param name: name of the variable
+        :return: the variable
+        """
         return self.variables[name].var
 
     def get_vars(self) -> Dict[str, Symbol]:
+        """Return the dictionary of variables.
+
+        .. note::
+            values of the dictionary are Sympy objects, not the object of class
+            VarAbs.
+
+        :return: dictionary of variables
+        """
         return {name: var.var for name, var in self.variables.items()}
 
     def int_var(self, name: str, lb: int = None, ub: int = None) -> Symbol:
+        """Create and return integer variable.
+
+        :param name: name of the variable
+        :param lb: minimal value, defaults to -INF
+        :param ub: maximal value, defaults to INF
+        :raises ValueError: if the name is already used
+        :return: the Sympy variable
+        """
         if name in self.variables.keys():
             raise ValueError(f"Variable {name} already exists")
         var = IntVar(name, lb, ub)
@@ -82,6 +147,14 @@ class SympyOpt(ModelAbs):
         return var.var
 
     def real_var(self, name: str, lb: float = None, ub: float = None) -> Symbol:
+        """Create and return real variable.
+
+        :param name: name of the variable
+        :param lb: minimal value, defaults to -INF
+        :param ub: maximal value, defaults to INF
+        :raises ValueError: if the name is already used
+        :return: the Sympy variable
+        """
         if name in self.variables.keys():
             raise ValueError(f"Variable {name} already exists")
         var = RealVar(name, lb, ub)
@@ -89,6 +162,12 @@ class SympyOpt(ModelAbs):
         return var.var
 
     def bit_var(self, name: str) -> Symbol:
+        """Create and return binary variable.
+
+        :param name: name of the variable
+        :raises ValueError: if the name is already used
+        :return: the Sympy variable
+        """
         if name in self.variables.keys():
             raise ValueError(f"Variable {name} already exists")
         var = BitVar(name)
@@ -96,6 +175,12 @@ class SympyOpt(ModelAbs):
         return var.var
 
     def spin_var(self, name: str) -> Symbol:
+        """Create and return spin variable
+
+        :param name: name of the variable
+        :raises ValueError: if the name is already used
+        :return: the Sympy variable
+        """
         if name in self.variables.keys():
             raise ValueError(f"Variable {name} already exists")
         var = SpinVar(name)
@@ -103,6 +188,11 @@ class SympyOpt(ModelAbs):
         return var.var
 
     def __eq__(self, model2) -> bool:
+        """Check if two optimization models equal.
+
+        Equality is equivalent to: same sense, approximately same objective
+        function, same constraints list, and same variables.
+        """
         if self.sense != model2.sense:
             return False
         if _approx_sympy_expr(expand(self.objective - model2.objective)) != 0:
@@ -183,6 +273,13 @@ class SympyOpt(ModelAbs):
         return True
 
     def is_lip(self) -> bool:
+        """Check if model is Linear Integer Program.
+
+        Model is Linear Integer Program if all variables are BitVar or IntVar,
+        and objective and constraints are linear
+
+        :return: flag stating if the model is Linear Integer Program
+        """
         if not all(isinstance(v, (BitVar, IntVar)) for v in self.variables.values()):
             return False
         if not self.objective.is_polynomial():
@@ -195,6 +292,13 @@ class SympyOpt(ModelAbs):
         return True
 
     def is_qip(self) -> bool:
+        """Check if model is Quadratic Integer Program.
+
+        Model is Quadratic Integer Program if all variables are BitVar or
+        IntVar,  objective is quadratic polynomial, and constraints are linear.
+
+        :return: flag stating if the model is Quadratic Integer Program
+        """
         if not all(isinstance(v, (BitVar, IntVar)) for v in self.variables.values()):
             return False
         if not self.objective.is_polynomial():
@@ -209,6 +313,13 @@ class SympyOpt(ModelAbs):
         raise NotImplementedError()
 
     def is_pp(self) -> bool:
+        """Check if model is Polynomial Integer Program.
+
+        Model is Polynomial Integer Program if all variables are BitVar or
+        IntVar, objective and constraints are polynomials.
+
+        :return: flag stating if the model is Polynomial Integer Program
+        """
         if not all(isinstance(v, (BitVar, IntVar)) for v in self.variables.values()):
             return False
         if not self.objective.is_polynomial():
@@ -218,6 +329,15 @@ class SympyOpt(ModelAbs):
         return True
 
     def is_qcqp(self) -> bool:
+        """Check if model is Quadratically Constrained Quadratic Program.
+
+        Model is Quadratically Constrained Quadratic Program if all variables
+        are BitVar or IntVar, objective and constraints are quadratic
+        polynomials.
+
+        :return: flag stating if the model is Quadratically Constrained
+            Quadratic Program
+        """
         if not all(isinstance(v, (BitVar, IntVar)) for v in self.variables.values()):
             return False
         if not self.objective.is_polynomial():
@@ -230,10 +350,25 @@ class SympyOpt(ModelAbs):
         return True
 
     def is_bm(self) -> bool:
+        """Check if model is Binary Model.
+
+        Model is Binary Model if all variables are BitVar or SpinVar.
+
+        :return: flag stating if the model is Binary Model
+        """
         vars = self.variables.values()
         return all(isinstance(v, (BitVar, SpinVar)) for v in vars)
 
     def is_qubo(self) -> bool:
+        """Check if model is Quadratic Unconstrained Binary Optimization.
+
+        Model is Quadratic Unconstrained Binary Optimization if all variables
+        are BitVar, objective function is quadratic polynomial and there are no
+        constraints.
+
+        :return: flag stating if the model is Quadratic Unconstrained Binary
+            Optimization
+        """
         if len(self.list_constraints()) > 0:
             return False
         if not all(isinstance(v, BitVar) for v in self.variables.values()):
@@ -244,6 +379,16 @@ class SympyOpt(ModelAbs):
         return total_degree(objective_copy) <= 2
 
     def is_ising(self, locality: int = None) -> bool:
+        """Check if model is an Ising Model.
+
+        Model is Ising model if all variables are SpinVar, objective function is
+        a polynomial of at most locality order and there are no constraints.
+
+        :param locality: maximal locality, defaults to 2
+        :return: flag stating if the model is Quadratic Unconstrained Binary
+            Optimization
+        """
+
         if locality is None:
             locality = 2
         assert locality > 0
@@ -257,6 +402,13 @@ class SympyOpt(ModelAbs):
         return total_degree(objective_copy) <= locality
 
     def is_hobo(self) -> bool:
+        """Check if model is Higher Order Binary Optimization.
+
+        Model is Higher Order Binary Optimization if all variables are BitVar,
+        objective function is a polynomial and there are no constraints.
+
+        :return: flag stating if the model is Higher Order Binary Optimization
+        """
         if len(self.list_constraints()) > 0:
             return False
         if not all(isinstance(v, BitVar) for v in self.variables.values()):

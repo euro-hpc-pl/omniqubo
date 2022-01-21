@@ -63,7 +63,7 @@ class MakeMax(ConverterSympyOptAbs):
 
 
 class RemoveConstraint(ConverterSympyOptAbs):
-    """Removes the given constraint
+    """Removes the given constraint.
 
     Removes the constraint of given name if exists. Otherwise do not do
     anything to the model.
