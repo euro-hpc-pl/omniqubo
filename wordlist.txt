@@ -1,0 +1,7 @@
+encodings
+lb
+nan
+nonnegative
+np
+omniqubo
+ub

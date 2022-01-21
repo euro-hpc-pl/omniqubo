@@ -16,7 +16,7 @@ from .utils import INTER_STR_SEP
 class VarReplace(ConverterSympyOptAbs):
     """Replaces the variable with some formula.
 
-    Transform all occurences of the variable var in the model with the binary
+    Transform all occurrences of the variable var in the model with the binary
     formula, and add extra constraint if required. This is an abstract class
     which can be used for various integer encodings.
 
@@ -32,14 +32,14 @@ class VarReplace(ConverterSympyOptAbs):
 
     @abstractmethod
     def _get_expr_add_constr(self, model: sympyopt.SympyOpt) -> Expr:
-        """creates the formulat for var and adds constraints to model.
+        """creates the formula for var and adds constraints to model.
 
         .. note::
             model should be updated with the constraints required for the
             transformation
 
         :param model: model to be transformed, with new constraints added
-        :return: expression for replacing all occurences of var
+        :return: expression for replacing all occurrences of var
         """
         pass
 
@@ -58,7 +58,7 @@ class VarReplace(ConverterSympyOptAbs):
                 c.exprright = c.exprright.xreplace({self.var.var: expr})
 
     def convert(self, model: sympyopt.SympyOpt) -> sympyopt.SympyOpt:
-        """replaces all occurences for self.var and add constraints
+        """replaces all occurrences for self.var and add constraints
 
         :param model: model to be transformed
         :return: transformed model

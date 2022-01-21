@@ -26,4 +26,8 @@ module = [
 ignore_missing_imports = true
 
 
-
+[tool.pylint.messages_control]
+spelling-dict = ['en_US']
+disable = "all"
+enable = "C0402, C0403" 
+spelling-private-dict-file = "wordlist.txt"

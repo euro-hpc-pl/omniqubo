@@ -26,3 +26,17 @@ repos:
     rev: v0.812
     hooks:
       - id: mypy
+
+  - repo: https://github.com/PyCQA/pylint
+    rev: pylint-2.7.4
+    hooks:
+      - id: pylint
+        args: ["omniqubo"]
+        additional_dependencies:
+          - pyenchant
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.1.0
+    hooks:
+      - id: file-contents-sorter
+        files: "wordlist.txt"
