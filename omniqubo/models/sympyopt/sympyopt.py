@@ -4,31 +4,28 @@ from typing import Dict
 
 from sympy import Expr, Integer, S, Symbol, core, expand, total_degree
 
-import omniqubo.models.utils as utils
+import omniqubo.utils.utils as utils
+from omniqubo.model import MAX_SENSE, MIN_SENSE, ModelAbs
 
-from ..model import ModelAbs
 from .constraints import ConstraintAbs, ConstraintEq, ConstraintIneq, _list_unknown_vars
 from .utils import _approx_sympy_expr
-from .vars import BitVar, IntVar, RealVar, SpinVar, VarAbs
-
-SYMPYOPT_MIN_SENSE = "min"
-SYMPYOPT_MAX_SENSE = "max"
+from .vars import BitVar, IntVar, RealVar, SpinVar, VarAbsSympyOpt
 
 
 class SympyOpt(ModelAbs):
     """Optimization modeling language based on Sympy.
 
     The object consist of a dictionary of named constraint, objective function
-    which defaults to S(0), sense equal to SYMPYOPT_MIN_SENSE or
-    SYMPYOPT_MAX_SENSE and dictionary of variables. The primary use is for
+    which defaults to S(0), sense equal to MIN_SENSE or
+    MAX_SENSE and dictionary of variables. The primary use is for
     transforming it into binary or other models.
     """
 
     def __init__(self) -> None:
-        self.constraints = dict()  # type: Dict[str,ConstraintAbs]
-        self.objective = S(0)
-        self.sense = SYMPYOPT_MIN_SENSE
-        self.variables = dict()  # type: Dict[str,VarAbs]
+        self.constraints: Dict[str, ConstraintAbs] = dict()
+        self.objective: Expr = S(0)
+        self.sense = MIN_SENSE
+        self.variables: Dict[str, VarAbsSympyOpt] = dict()
 
     def _set_objective(self, obj: Expr) -> None:
         if not isinstance(obj, Expr):
@@ -49,7 +46,7 @@ class SympyOpt(ModelAbs):
         :param obj: minimized expression
         :raises ValueError: if variables are not present in the model
         """
-        self.sense = SYMPYOPT_MIN_SENSE
+        self.sense = MIN_SENSE
         self._set_objective(obj)
 
     def maximize(self, obj: Expr) -> None:
@@ -59,7 +56,7 @@ class SympyOpt(ModelAbs):
 
         :param obj: maximized expression
         """
-        self.sense = SYMPYOPT_MAX_SENSE
+        self.sense = MAX_SENSE
         self._set_objective(obj)
 
     def add_constraint(self, constraint: ConstraintAbs, name: str = None) -> None:
@@ -211,7 +208,7 @@ class SympyOpt(ModelAbs):
 
     def __str__(self) -> str:
         out_string = "SympyOpt instance\n"
-        out_string += "minimize:\n" if self.sense == SYMPYOPT_MIN_SENSE else "maximize\n"
+        out_string += "minimize:\n" if self.sense == MIN_SENSE else "maximize\n"
         out_string += f"   {self.objective}\n"
         if self.constraints:
             out_string += "such that:\n"

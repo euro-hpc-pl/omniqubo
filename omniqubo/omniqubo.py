@@ -4,12 +4,14 @@ from typing import List
 
 from pandas.core.frame import DataFrame
 
+from omniqubo.model import ModelAbs
+
 from .constants import DEFAULT_PENALTY_VALUE
-from .models.sympyopt.constraints import ConstraintEq
-from .models.sympyopt.converter.abs_converter import ConverterSympyOptAbs
-from .models.sympyopt.converter.eq_to_objective import EqToObj
-from .models.sympyopt.converter.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
-from .models.sympyopt.converter.varreplace import BitToSpin, TrivialIntToBit, VarOneHot, VarReplace
+from .converters.converter import ConverterAbs
+from .converters.eq_to_objective import EqToObj
+from .converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
+from .converters.varreplace import BitToSpin, TrivialIntToBit, VarOneHot, VarReplace
+from .models.sympyopt.converters import convert, interpret
 from .models.sympyopt.sympyopt import SympyOpt
 from .models.sympyopt.transpiler.sympyopt_to_bqm import SympyOptToDimod
 from .models.sympyopt.transpiler.transpiler import transpile
@@ -17,23 +19,26 @@ from .models.sympyopt.vars import BitVar, IntVar
 
 
 class Omniqubo:
-    def __init__(self, model, verbatim_logs: bool = False) -> None:
+    def __init__(self, model, verbatim_logs: bool = False, backend=None) -> None:
         self.orig_model = deepcopy(model)
-        self.model = transpile(self.orig_model)  # type: SympyOpt
-        self.logs = []  # type: List[ConverterSympyOptAbs]
-        self.model_logs = []  # type: List[SympyOpt]
+        if backend is None or backend == "sympyopt":
+            self.model = transpile(self.orig_model)  # type: ModelAbs
+        else:
+            raise ValueError(f"Unknown backend {backend}")
+        self.logs = []  # type: List[ConverterAbs]
+        self.model_logs = []  # type: List[ModelAbs]
         self.verbatim_logs = verbatim_logs
 
-    def _convert(self, convstep: ConverterSympyOptAbs):
+    def _convert(self, convstep: ConverterAbs):
         self.logs.append(convstep)
-        self.model = convstep.convert(self.model)
+        self.model = convert(self.model, convstep)
         if self.verbatim_logs:
             self.model_logs.append(deepcopy(self.model))
         return self.model
 
     def interpret(self, samples: DataFrame) -> DataFrame:
-        for log in reversed(self.logs):
-            samples = log.interpret(samples)
+        for converter in reversed(self.logs):
+            samples = interpret(samples, converter)
         return samples
 
     def to_qubo(self):
@@ -44,19 +49,20 @@ class Omniqubo:
 
     def export(self, mode: str):
         if mode == "bqm":
-            return SympyOptToDimod().transpile(self.model)
+            if isinstance(self.model, SympyOpt):  # HACK
+                return SympyOptToDimod().transpile(self.model)
         else:
             raise ValueError(f"Unknown mode {mode}")
 
-    def make_max(self) -> SympyOpt:
+    def make_max(self) -> ModelAbs:
         self._convert(MakeMax())
         return self.model
 
-    def make_min(self) -> SympyOpt:
+    def make_min(self) -> ModelAbs:
         self._convert(MakeMin())
         return self.model
 
-    def rm_constraint(self, name: str = None, regname: str = None) -> SympyOpt:
+    def rm_constraint(self, name: str = None, regname: str = None) -> ModelAbs:
         assert name is None or regname is None
 
         if name:
@@ -73,14 +79,12 @@ class Omniqubo:
                 self._convert(c)
         return self.model
 
-    def eq_to_obj(self, name: str = None, regname: str = None, penalty: float = None):
+    def eq_to_obj(self, name: str = None, regname: str = None, penalty: float = None) -> ModelAbs:
         assert name is None or regname is None
         if penalty is None:
             penalty = DEFAULT_PENALTY_VALUE
 
         if name:
-            constr = self.model.constraints[name]
-            assert isinstance(constr, ConstraintEq)
             self._convert(EqToObj(name, penalty))
         else:
             if not regname:
@@ -88,15 +92,16 @@ class Omniqubo:
             _rex = re.compile(regname)
             conv_to_do = []
             for name, constr in self.model.constraints.items():
-                if _rex.fullmatch(name) and isinstance(constr, ConstraintEq):
-                    conv_to_do.append(EqToObj(name, penalty))
-            for c in conv_to_do:
-                self._convert(c)
+                conv = EqToObj(name, penalty)
+                if _rex.fullmatch(name) and constr.is_eq_constraint():
+                    conv_to_do.append(conv)
+            for conv in conv_to_do:
+                self._convert(conv)
         return self.model
 
     def int_to_bits(
         self, mode: str, name: str = None, regname: str = None, trivial_conv: bool = True
-    ) -> SympyOpt:
+    ) -> ModelAbs:
         assert name is None or regname is None
 
         conv = None
@@ -106,9 +111,7 @@ class Omniqubo:
             raise ValueError("Uknown mode {mode}")  # pragma: no cover
 
         if name:
-            intvar = self.model.variables[name]
-            assert isinstance(intvar, IntVar)
-            self._convert(conv(intvar))
+            self._convert(conv(name))
         else:
             if not regname:
                 regname = ".*"
@@ -117,22 +120,20 @@ class Omniqubo:
             for name, var in self.model.variables.items():
                 if _rex.fullmatch(name) and isinstance(var, IntVar):
                     if not trivial_conv or var.ub - var.lb > 1:
-                        conv_to_do.append(conv(var))
+                        conv_to_do.append(conv(name))
                     else:  # var.ub - var.lb == 1
-                        conv_to_do.append(TrivialIntToBit(var))
+                        conv_to_do.append(TrivialIntToBit(name))
             for c in conv_to_do:
                 self._convert(c)
         return self.model
 
-    def bit_to_spin(self, name: str = None, regname: str = None, reversed: bool = None) -> SympyOpt:
+    def bit_to_spin(self, name: str = None, regname: str = None, reversed: bool = None) -> ModelAbs:
         assert name is None or regname is None
         if reversed is None:
             reversed = True
 
         if name:
-            intvar = self.model.variables[name]
-            assert isinstance(intvar, BitVar)
-            self._convert(BitToSpin(intvar, reversed=reversed))
+            self._convert(BitToSpin(name, reversed=reversed))
         else:
             if not regname:
                 regname = ".*"
@@ -140,7 +141,7 @@ class Omniqubo:
             conv_to_do = []
             for name, var in self.model.variables.items():
                 if _rex.fullmatch(name) and isinstance(var, BitVar):
-                    conv_to_do.append(BitToSpin(var, reversed=reversed))
+                    conv_to_do.append(BitToSpin(name, reversed=reversed))
             for c in conv_to_do:
                 self._convert(c)
         return self.model

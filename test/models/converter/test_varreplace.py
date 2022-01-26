@@ -1,5 +1,6 @@
+from omniqubo.converters.varreplace import VarOneHot
 from omniqubo.models.sympyopt.constraints import ConstraintEq
-from omniqubo.models.sympyopt.converter.varreplace import VarOneHot
+from omniqubo.models.sympyopt.converters import convert
 from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
 
@@ -9,8 +10,8 @@ class TestOneHot:
         x = sympyopt.int_var(name="x", lb=0, ub=2)
         y = sympyopt.int_var(lb=-2, ub=3, name="y")
         sympyopt.minimize(2 * x - 3 * y + 2)
-        conv = VarOneHot(sympyopt.variables["y"])
-        sympyopt = conv.convert(sympyopt)
+        conv = VarOneHot("y")
+        sympyopt = convert(sympyopt, conv)
 
         sympyopt2 = SympyOpt()
         x = sympyopt2.int_var(name="x", lb=0, ub=2)
@@ -31,8 +32,8 @@ class TestOneHot:
         y = sympyopt.int_var(lb=-2, ub=3, name="y")
         c = ConstraintEq(-1.5 * x + 2 * y, 4)
         sympyopt.add_constraint(c, "lin")
-        conv = VarOneHot(sympyopt.variables["x"])
-        sympyopt = conv.convert(sympyopt)
+        conv = VarOneHot("x")
+        sympyopt = convert(sympyopt, conv)
 
         sympyopt2 = SympyOpt()
         y = sympyopt2.int_var(lb=-2, ub=3, name="y")

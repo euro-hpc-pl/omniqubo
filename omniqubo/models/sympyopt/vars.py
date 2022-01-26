@@ -1,23 +1,16 @@
-from abc import ABC
-
 from sympy import Symbol
 from sympy.core.evalf import INF
 
+from omniqubo.vars import VarAbs
 
-class VarAbs(ABC):
-    """Abstract class for SympyOpt variables
 
-    All variable objects must have name and Sympy.Symbol object.
-
-    :param name: name of the variable
-    """
-
+class VarAbsSympyOpt(VarAbs):
     def __init__(self, name: str) -> None:
-        self.name = name
         self.var = Symbol(name)
+        super().__init__(name)
 
 
-class IntVar(VarAbs):
+class IntVar(VarAbsSympyOpt):
     """Integer variable for SympyOpt
 
     If lb or ub are not specified, they are set to -INF or INF respectively.
@@ -51,7 +44,7 @@ class IntVar(VarAbs):
         return f"Integer {self.lb} <= {self.name} <= {self.ub}"
 
 
-class RealVar(VarAbs):
+class RealVar(VarAbsSympyOpt):
     """Real variable for SympyOpt
 
     If lb or ub are not specified, they are set to -INF or INF respectively.
@@ -85,7 +78,7 @@ class RealVar(VarAbs):
         return f"Real {self.lb} <= {self.name} <= {self.ub}"
 
 
-class BitVar(VarAbs):
+class BitVar(VarAbsSympyOpt):
     """Binary variable for SympyOpt
 
     :param name: name of the variable
@@ -107,7 +100,7 @@ class BitVar(VarAbs):
         return f"Bit {self.name}"
 
 
-class SpinVar(VarAbs):
+class SpinVar(VarAbsSympyOpt):
     """Spin variable for SympyOpt
 
     :param name: name of the variable

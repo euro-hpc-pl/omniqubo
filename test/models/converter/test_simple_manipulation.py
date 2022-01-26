@@ -1,11 +1,8 @@
 from copy import deepcopy
 
+from omniqubo.converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
 from omniqubo.models.sympyopt.constraints import ConstraintEq
-from omniqubo.models.sympyopt.converter.simple_manipulation import (
-    MakeMax,
-    MakeMin,
-    RemoveConstraint,
-)
+from omniqubo.models.sympyopt.converters import convert
 from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
 
@@ -24,15 +21,15 @@ class TestOneHot:
         assert sympyopt != sympyopt_max
 
         conv = MakeMax()
-        sympyopt = conv.convert(sympyopt)
+        sympyopt = convert(sympyopt, conv)
         assert sympyopt == sympyopt_max
-        sympyopt = conv.convert(sympyopt)
+        sympyopt = convert(sympyopt, conv)
         assert sympyopt == sympyopt_max
 
         conv = MakeMin()
-        sympyopt = conv.convert(sympyopt)
+        sympyopt = convert(sympyopt, conv)
         assert sympyopt == sympyopt_copy
-        sympyopt = conv.convert(sympyopt)
+        sympyopt = convert(sympyopt, conv)
         assert sympyopt == sympyopt_copy
 
     def test_remove_constraint(self):
@@ -48,5 +45,5 @@ class TestOneHot:
         sympyopt.add_constraint(c, "second")
 
         assert sympyopt_small != sympyopt
-        sympyopt = RemoveConstraint("second").convert(sympyopt)
+        sympyopt = convert(sympyopt, RemoveConstraint("second"))
         assert sympyopt_small == sympyopt

@@ -1,5 +1,6 @@
+from omniqubo.converters.eq_to_objective import EqToObj
 from omniqubo.models.sympyopt.constraints import ConstraintEq
-from omniqubo.models.sympyopt.converter.eq_to_objective import EqToObj
+from omniqubo.models.sympyopt.converters import convert
 from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
 
@@ -13,8 +14,8 @@ class TestEqToObj:
         sympyopt.add_constraint(ConstraintEq(2 * x ** 2 - 3 * y, 0), name="constr2")
         conv1 = EqToObj("constr1", 10)
         conv2 = EqToObj("constr2", 3.5)
-        sympyopt = conv1.convert(sympyopt)
-        sympyopt = conv2.convert(sympyopt)
+        sympyopt = convert(sympyopt, conv1)
+        sympyopt = convert(sympyopt, conv2)
 
         sympyopt2 = SympyOpt()
         x = sympyopt2.int_var(name="x", lb=0, ub=2)
@@ -33,8 +34,8 @@ class TestEqToObj:
         sympyopt.add_constraint(ConstraintEq(2 * x ** 2 - 3 * y, 0), name="constr2")
         conv1 = EqToObj("constr1", 10)
         conv2 = EqToObj("constr2", 3.5)
-        sympyopt = conv1.convert(sympyopt)
-        sympyopt = conv2.convert(sympyopt)
+        sympyopt = convert(sympyopt, conv1)
+        sympyopt = convert(sympyopt, conv2)
 
         sympyopt2 = SympyOpt()
         x = sympyopt2.int_var(name="x", lb=0, ub=2)

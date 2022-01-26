@@ -3,9 +3,9 @@ from typing import Dict
 import dimod
 from sympy import Expr, core
 
-from omniqubo.models.transpiler import TransiplerAbs
+from omniqubo.transpiler import TransiplerAbs
 
-from ..sympyopt import SYMPYOPT_MIN_SENSE, SympyOpt
+from ..sympyopt import MIN_SENSE, SympyOpt
 
 
 class SympyOptToDimod(TransiplerAbs):
@@ -70,4 +70,4 @@ class SympyOptToDimod(TransiplerAbs):
         :param model: checked model
         :return: flag denoting if model can be transpiled
         """
-        return model.is_qubo() and model.sense == SYMPYOPT_MIN_SENSE
+        return model.is_qubo() and model.sense == MIN_SENSE

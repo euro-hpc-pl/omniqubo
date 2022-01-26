@@ -1,5 +1,6 @@
 BinaryQuadraticModel
 Ising
+bool
 bqm
 dimod
 docplex
@@ -18,3 +19,4 @@ transpiled
 transpiler
 transpilers
 ub
+varname
