@@ -1,4 +1,8 @@
-from .converter import ConverterAbs
+from warnings import warn
+
+from pandas import DataFrame
+
+from .converter import ConverterAbs, interpret
 
 
 class EqToObj(ConverterAbs):
@@ -18,3 +22,9 @@ class EqToObj(ConverterAbs):
         assert penalty >= 0
         # TODO warning for 0 penalty
         self.penalty = penalty
+
+
+@interpret.register
+def interpret_eqtoobj(samples: DataFrame, converter: EqToObj) -> DataFrame:
+    warn("EqToObj is not analysing feasibility")
+    return samples

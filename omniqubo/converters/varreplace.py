@@ -1,6 +1,10 @@
 from typing import Any, Dict
 
-from .converter import ConverterAbs
+import numpy as np
+from pandas import DataFrame
+
+from .converter import ConverterAbs, interpret
+from .utils import INTER_STR_SEP
 
 
 class VarReplace(ConverterAbs):
@@ -37,6 +41,30 @@ class VarOneHot(VarReplace):
         super().__init__(varname)
 
 
+@interpret.register
+def interpret_varonehot(samples: DataFrame, converter: VarOneHot) -> DataFrame:
+    name = converter.varname
+    lb = converter.data["lb"]
+    ub = converter.data["ub"]
+
+    names = [f"{name}{INTER_STR_SEP}OH_{i}" for i in range(ub - lb + 1)]
+    samples["feasible_tmp"] = samples.apply(lambda row: sum(row[n] for n in names) == 1, axis=1)
+
+    def set_var_value(row):
+        return lb + [row[n] for n in names].index(1) if row["feasible_tmp"] else np.nan
+
+    samples[name] = samples.apply(
+        set_var_value,
+        axis=1,
+    )
+
+    samples["feasible"] &= samples.pop("feasible_tmp")
+    for n in names:
+        samples.pop(n)
+
+    return samples
+
+
 class TrivialIntToBit(VarReplace):
     """Replace integer with binary variable.
 
@@ -48,6 +76,15 @@ class TrivialIntToBit(VarReplace):
 
     def __init__(self, varname: str) -> None:
         super().__init__(varname)
+
+
+@interpret.register
+def interpret_trivialinttobit(samples: DataFrame, converter: TrivialIntToBit) -> DataFrame:
+    name_orig = converter.varname
+    name_new = f"{name_orig}{INTER_STR_SEP}itb"
+    samples.rename(columns={name_new: name_orig})
+    samples[name_orig] = samples[name_orig] + converter.data["lb"]
+    return samples
 
 
 class BitToSpin(VarReplace):
@@ -63,3 +100,8 @@ class BitToSpin(VarReplace):
     def __init__(self, varname: str, reversed: bool) -> None:
         super().__init__(varname)
         self.reversed = reversed
+
+
+@interpret.register
+def interpret_bittospin(samples: DataFrame, converter: BitToSpin) -> DataFrame:
+    raise NotImplementedError()

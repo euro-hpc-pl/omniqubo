@@ -7,11 +7,10 @@ from pandas.core.frame import DataFrame
 from omniqubo.model import ModelAbs
 
 from .constants import DEFAULT_PENALTY_VALUE
-from .converters.converter import ConverterAbs
+from .converters.converter import ConverterAbs, convert, interpret
 from .converters.eq_to_objective import EqToObj
 from .converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
 from .converters.varreplace import BitToSpin, TrivialIntToBit, VarOneHot, VarReplace
-from .models.sympyopt.converters import convert, interpret
 from .models.sympyopt.sympyopt import SympyOpt
 from .models.sympyopt.transpiler.sympyopt_to_bqm import SympyOptToDimod
 from .models.sympyopt.transpiler.transpiler import transpile

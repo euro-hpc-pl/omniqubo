@@ -1,12 +1,7 @@
-from warnings import warn
-
-import numpy as np
-from multimethod import multimethod
-from pandas import DataFrame
 from sympy import Expr
 from sympy.core.evalf import INF
 
-from omniqubo.converters.converter import can_convert
+from omniqubo.converters.converter import can_convert, convert
 from omniqubo.converters.eq_to_objective import EqToObj
 from omniqubo.converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
 from omniqubo.converters.utils import INTER_STR_SEP
@@ -19,8 +14,8 @@ from .sympyopt import MAX_SENSE, MIN_SENSE, SympyOpt
 # EqToObj
 
 
-@multimethod  # type: ignore[no-redef]
-def convert(model: SympyOpt, converter: EqToObj):
+@convert.register
+def convert_sympyopt_eqtoobj(model: SympyOpt, converter: EqToObj):
     assert can_convert(model, converter)
     c = model.constraints[converter.name]
     assert isinstance(c, ConstraintEq)
@@ -32,23 +27,17 @@ def convert(model: SympyOpt, converter: EqToObj):
     return model
 
 
-@multimethod  # type: ignore[no-redef]
-def can_convert(model: SympyOpt, converter: EqToObj) -> bool:
+@can_convert.register
+def can_convert_sympyopt_eqtoobj(model: SympyOpt, converter: EqToObj) -> bool:
     name = converter.name
-    return name in model.constraints and type(model.constraints[name]) == ConstraintEq
-
-
-@multimethod  # type: ignore[no-redef]
-def interpret(samples: DataFrame, converter: EqToObj) -> DataFrame:
-    warn("EqToObj is not analysing feasibility")
-    return samples
+    return name in model.constraints and type(model.constraints[name]) is ConstraintEq
 
 
 # MakeMax
 
 
-@multimethod  # type: ignore[no-redef]
-def convert(model: SympyOpt, converter: MakeMax) -> SympyOpt:
+@convert.register
+def convert_sympyopt_makemax(model: SympyOpt, converter: MakeMax) -> SympyOpt:
     assert can_convert(model, converter)
     if model.sense == MIN_SENSE:
         model.minimize(-model.get_objective())
@@ -56,21 +45,16 @@ def convert(model: SympyOpt, converter: MakeMax) -> SympyOpt:
     return model
 
 
-@multimethod  # type: ignore[no-redef]
-def can_convert(model: SympyOpt, converter: MakeMax) -> bool:
+@can_convert.register
+def can_convert_sympyopt_makemax(model: SympyOpt, converter: MakeMax) -> bool:
     return True
-
-
-@multimethod  # type: ignore[no-redef]
-def interpret(samples: DataFrame, converter: MakeMax) -> DataFrame:
-    return samples
 
 
 # MakeMin
 
 
-@multimethod  # type: ignore[no-redef]
-def convert(model: SympyOpt, converter: MakeMin) -> SympyOpt:
+@convert.register
+def convert_sympyopt_makemin(model: SympyOpt, converter: MakeMin) -> SympyOpt:
     assert can_convert(model, converter)
     if model.sense == MAX_SENSE:
         model.minimize(-model.get_objective())
@@ -78,36 +62,24 @@ def convert(model: SympyOpt, converter: MakeMin) -> SympyOpt:
     return model
 
 
-@multimethod  # type: ignore[no-redef]
-def can_convert(model: SympyOpt, converter: MakeMin) -> bool:
+@can_convert.register
+def can_convert_sympyopt_makemin(model: SympyOpt, converter: MakeMin) -> bool:
     return True
-
-
-@multimethod  # type: ignore[no-redef]
-def interpret(samples: DataFrame, converter: MakeMin) -> DataFrame:
-    return samples
 
 
 # RemoveConstraint
 
 
-@multimethod  # type: ignore[no-redef]
-def convert(model: SympyOpt, converter: RemoveConstraint) -> SympyOpt:
+@convert.register
+def convert_sympyopt_removeconstraint(model: SympyOpt, converter: RemoveConstraint) -> SympyOpt:
     assert can_convert(model, converter)
     model.constraints.pop(converter.name)
     return model
 
 
-@multimethod  # type: ignore[no-redef]
-def can_convert(model: SympyOpt, converter: RemoveConstraint) -> bool:
+@can_convert.register
+def can_convert_sympyopt_removeconstraint(model: SympyOpt, converter: RemoveConstraint) -> bool:
     return converter.name in model.constraints
-
-
-@multimethod  # type: ignore[no-redef]
-def interpret(samples: DataFrame, converter: RemoveConstraint) -> DataFrame:
-    warn("Feasibility is not checked yet for RemoveConstraint")
-    # TODO: add flag to RemoveConstraint
-    return samples
 
 
 # general commands for VarReplace
@@ -138,8 +110,8 @@ def _get_expr_add_constr_onehot(model: SympyOpt, var: IntVar) -> Expr:
     return sum(v * x for x, v in zip(xs, range(lb, ub + 1)))
 
 
-@multimethod  # type: ignore[no-redef]
-def convert(model: SympyOpt, converter: VarOneHot) -> SympyOpt:
+@convert.register
+def convert_sympyopt_varonehot(model: SympyOpt, converter: VarOneHot) -> SympyOpt:
     assert can_convert(model, converter)
     var = model.variables[converter.varname]
     assert isinstance(var, IntVar)
@@ -155,43 +127,19 @@ def convert(model: SympyOpt, converter: VarOneHot) -> SympyOpt:
     return model
 
 
-@multimethod  # type: ignore[no-redef]
-def can_convert(model: SympyOpt, converter: VarOneHot) -> bool:
+@can_convert.register
+def can_convert_sympyopt_varonehot(model: SympyOpt, converter: VarOneHot) -> bool:
     var = model.variables[converter.varname]
     if not isinstance(var, IntVar):
         return False
     return var.lb != -INF and var.ub != INF
 
 
-@multimethod  # type: ignore[no-redef]
-def interpret(samples: DataFrame, converter: VarOneHot) -> DataFrame:
-    name = converter.varname
-    lb = converter.data["lb"]
-    ub = converter.data["ub"]
-
-    names = [f"{name}{INTER_STR_SEP}OH_{i}" for i in range(ub - lb + 1)]
-    samples["feasible_tmp"] = samples.apply(lambda row: sum(row[n] for n in names) == 1, axis=1)
-
-    def set_var_value(row):
-        return lb + [row[n] for n in names].index(1) if row["feasible_tmp"] else np.nan
-
-    samples[name] = samples.apply(
-        set_var_value,
-        axis=1,
-    )
-
-    samples["feasible"] &= samples.pop("feasible_tmp")
-    for n in names:
-        samples.pop(n)
-
-    return samples
-
-
 # TrivialIntToBit:
 
 
-@multimethod  # type: ignore[no-redef]
-def convert(model: SympyOpt, converter: TrivialIntToBit) -> SympyOpt:
+@convert.register
+def convert_sympyopt_trivialinttobit(model: SympyOpt, converter: TrivialIntToBit) -> SympyOpt:
     assert can_convert(model, converter)
     var = model.variables[converter.varname]
     assert isinstance(var, IntVar)
@@ -207,19 +155,10 @@ def convert(model: SympyOpt, converter: TrivialIntToBit) -> SympyOpt:
     return model
 
 
-@multimethod  # type: ignore[no-redef]
-def can_convert(model: SympyOpt, converter: TrivialIntToBit) -> bool:
+@can_convert.register
+def can_convert_sympyopt_trivialinttobit(model: SympyOpt, converter: TrivialIntToBit) -> bool:
     var = model.variables[converter.varname]
     return isinstance(var, IntVar) and var.ub - var.lb == 1
-
-
-@multimethod  # type: ignore[no-redef]
-def interpret(samples: DataFrame, converter: TrivialIntToBit) -> DataFrame:
-    name_orig = converter.varname
-    name_new = f"{name_orig}{INTER_STR_SEP}itb"
-    samples.rename(columns={name_new: name_orig})
-    samples[name_orig] = samples[name_orig] + converter.data["lb"]
-    return samples
 
 
 #  BitToSpin
@@ -233,8 +172,8 @@ def _get_expr_add_constr_bittospin(model: SympyOpt, converter: BitToSpin) -> Exp
         return (1 + var) / 2
 
 
-@multimethod  # type: ignore[no-redef]
-def convert(model: SympyOpt, converter: BitToSpin) -> SympyOpt:
+@convert.register
+def convert_sympyopt_bittospin(model: SympyOpt, converter: BitToSpin) -> SympyOpt:
     assert can_convert(model, converter)
     var = model.variables[converter.varname]
     assert isinstance(var, BitVar)
@@ -248,11 +187,6 @@ def convert(model: SympyOpt, converter: BitToSpin) -> SympyOpt:
     return model
 
 
-@multimethod  # type: ignore[no-redef]
-def can_convert(model: SympyOpt, converter: BitToSpin) -> bool:
+@convert.register
+def can_convert_sympyopt_bittospin(model: SympyOpt, converter: BitToSpin) -> bool:
     return isinstance(model.variables[converter.varname], BitVar)
-
-
-@multimethod  # type: ignore[no-redef]
-def interpret(samples: DataFrame, converter: BitToSpin) -> DataFrame:
-    raise NotImplementedError()

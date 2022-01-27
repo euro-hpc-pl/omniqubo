@@ -1,4 +1,8 @@
-from .converter import ConverterAbs
+from warnings import warn
+
+from pandas import DataFrame
+
+from .converter import ConverterAbs, interpret
 
 
 class MakeMin(ConverterAbs):
@@ -12,6 +16,11 @@ class MakeMin(ConverterAbs):
         pass
 
 
+@interpret.register
+def interpret_makemin(samples: DataFrame, converter: MakeMin) -> DataFrame:
+    return samples
+
+
 class MakeMax(ConverterAbs):
     """Converter for making the optimization model a maximization problem.
 
@@ -21,6 +30,11 @@ class MakeMax(ConverterAbs):
 
     def __init__(self) -> None:
         pass
+
+
+@interpret.register
+def interpret_makemax(samples: DataFrame, converter: MakeMax) -> DataFrame:
+    return samples
 
 
 class RemoveConstraint(ConverterAbs):
@@ -35,3 +49,10 @@ class RemoveConstraint(ConverterAbs):
     def __init__(self, name: str) -> None:
         self.name = name
         pass
+
+
+@interpret.register
+def interpret_removeconstraint(samples: DataFrame, converter: RemoveConstraint) -> DataFrame:
+    warn("Feasibility is not checked yet for RemoveConstraint")
+    # TODO: add flag to RemoveConstraint
+    return samples
