@@ -1,4 +1,3 @@
-import re
 from copy import deepcopy
 from typing import List
 
@@ -10,11 +9,10 @@ from .constants import DEFAULT_PENALTY_VALUE
 from .converters.converter import ConverterAbs, convert, interpret
 from .converters.eq_to_objective import EqToObj
 from .converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
-from .converters.varreplace import BitToSpin, TrivialIntToBit, VarOneHot, VarReplace
+from .converters.varreplace import BitToSpin, TrivialIntToBit, VarOneHot
 from .models.sympyopt.sympyopt import SympyOpt
 from .models.sympyopt.transpiler.sympyopt_to_bqm import SympyOptToDimod
 from .models.sympyopt.transpiler.transpiler import transpile
-from .models.sympyopt.vars import BitVar, IntVar
 
 
 class Omniqubo:
@@ -61,88 +59,32 @@ class Omniqubo:
         self._convert(MakeMin())
         return self.model
 
-    def rm_constraint(self, name: str = None, regname: str = None) -> ModelAbs:
-        assert name is None or regname is None
-
-        if name:
-            self._convert(RemoveConstraint(name))
-        else:
-            if not regname:
-                regname = ".*"
-            _rex = re.compile(regname)
-            conv_to_do = []
-            for name in self.model.constraints:
-                if _rex.fullmatch(name):
-                    conv_to_do.append(RemoveConstraint(name))
-            for c in conv_to_do:
-                self._convert(c)
+    def rm_constraints(
+        self, names: str, is_regexp: bool = True, check_constraints: bool = False
+    ) -> ModelAbs:
+        self._convert(RemoveConstraint(names, is_regexp, check_constraints))
         return self.model
 
-    def eq_to_obj(self, name: str = None, regname: str = None, penalty: float = None) -> ModelAbs:
-        assert name is None or regname is None
+    def eq_to_obj(self, names: str, is_regexp: bool = True, penalty: float = None) -> ModelAbs:
         if penalty is None:
             penalty = DEFAULT_PENALTY_VALUE
-
-        if name:
-            self._convert(EqToObj(name, penalty))
-        else:
-            if not regname:
-                regname = ".*"
-            _rex = re.compile(regname)
-            conv_to_do = []
-            for name, constr in self.model.constraints.items():
-                conv = EqToObj(name, penalty)
-                if _rex.fullmatch(name) and constr.is_eq_constraint():
-                    conv_to_do.append(conv)
-            for conv in conv_to_do:
-                self._convert(conv)
+        self._convert(EqToObj(names, is_regexp, penalty))
         return self.model
 
     def int_to_bits(
-        self, mode: str, name: str = None, regname: str = None, trivial_conv: bool = True
+        self, names: str, mode: str, is_regexp: bool = True, trivial_conv: bool = True
     ) -> ModelAbs:
-        assert name is None or regname is None
+        if trivial_conv and not is_regexp:
+            self._convert(TrivialIntToBit(names, is_regexp, optional=True))
 
-        conv = None
         if mode == "one-hot":
-            conv = VarOneHot
+            self._convert(VarOneHot(names, is_regexp))
         else:
             raise ValueError("Uknown mode {mode}")  # pragma: no cover
-
-        if name:
-            self._convert(conv(name))
-        else:
-            if not regname:
-                regname = ".*"
-            _rex = re.compile(regname)
-            conv_to_do = []  # type: List[VarReplace]
-            for name, var in self.model.variables.items():
-                if _rex.fullmatch(name) and isinstance(var, IntVar):
-                    if not trivial_conv or var.ub - var.lb > 1:
-                        conv_to_do.append(conv(name))
-                    else:  # var.ub - var.lb == 1
-                        conv_to_do.append(TrivialIntToBit(name))
-            for c in conv_to_do:
-                self._convert(c)
         return self.model
 
-    def bit_to_spin(self, name: str = None, regname: str = None, reversed: bool = None) -> ModelAbs:
-        assert name is None or regname is None
-        if reversed is None:
-            reversed = True
-
-        if name:
-            self._convert(BitToSpin(name, reversed=reversed))
-        else:
-            if not regname:
-                regname = ".*"
-            _rex = re.compile(regname)
-            conv_to_do = []
-            for name, var in self.model.variables.items():
-                if _rex.fullmatch(name) and isinstance(var, BitVar):
-                    conv_to_do.append(BitToSpin(name, reversed=reversed))
-            for c in conv_to_do:
-                self._convert(c)
+    def bit_to_spin(self, names: str, is_regexp: bool = True, reversed: bool = False) -> ModelAbs:
+        self._convert(BitToSpin(names, is_regexp, reversed))
         return self.model
 
     def is_qubo(self) -> bool:

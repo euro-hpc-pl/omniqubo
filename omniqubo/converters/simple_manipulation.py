@@ -41,18 +41,24 @@ class RemoveConstraint(ConverterAbs):
     """Removes the given constraint.
 
     Removes the constraint of given name if exists. Otherwise do not do
-    anything to the model.
+    anything to the model. If check_constraint is set to False, the interpreted
+    samples are not checked against the removed constraint. If is_regexp is set
+    to True, then all constraint with matching names are removed.
+
 
     :param name: the name of the removed model
+    :param is_regexp: flag deciding if name is regular expression
+    :param check_constraint: flag for checking the constraint
     """
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, is_regexp: bool, check_constraint: bool) -> None:
         self.name = name
-        pass
+        self.check_constraint = check_constraint
+        self.is_regexp = is_regexp
+        super().__init__()
 
 
 @interpret.register
 def interpret_removeconstraint(samples: DataFrame, converter: RemoveConstraint) -> DataFrame:
     warn("Feasibility is not checked yet for RemoveConstraint")
-    # TODO: add flag to RemoveConstraint
     return samples

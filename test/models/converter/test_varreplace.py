@@ -10,7 +10,7 @@ class TestOneHot:
         x = sympyopt.int_var(name="x", lb=0, ub=2)
         y = sympyopt.int_var(lb=-2, ub=3, name="y")
         sympyopt.minimize(2 * x - 3 * y + 2)
-        conv = VarOneHot("y")
+        conv = VarOneHot("y", True)
         sympyopt = convert(sympyopt, conv)
 
         sympyopt2 = SympyOpt()
@@ -24,6 +24,8 @@ class TestOneHot:
         c = ConstraintEq(y1 + y2 + y3 + y4 + y5 + y6, 1)
         sympyopt2.add_constraint(c, name="_@@_OH_y")
         sympyopt2.minimize(2 * x + 6 * y1 + 3 * y2 - 3 * y4 - 6 * y5 - 9 * y6 + 2)
+        print(sympyopt)
+        print(sympyopt2)
         assert sympyopt == sympyopt2
 
     def test_constraints(self):
@@ -32,7 +34,7 @@ class TestOneHot:
         y = sympyopt.int_var(lb=-2, ub=3, name="y")
         c = ConstraintEq(-1.5 * x + 2 * y, 4)
         sympyopt.add_constraint(c, "lin")
-        conv = VarOneHot("x")
+        conv = VarOneHot("x", is_regexp=False)
         sympyopt = convert(sympyopt, conv)
 
         sympyopt2 = SympyOpt()

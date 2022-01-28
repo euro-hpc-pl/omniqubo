@@ -1,13 +1,16 @@
-from sympy import Expr
+import re
+from typing import Callable, Dict, List
+
+from sympy import Expr, Symbol
 from sympy.core.evalf import INF
 
 from omniqubo.converters.converter import can_convert, convert
 from omniqubo.converters.eq_to_objective import EqToObj
 from omniqubo.converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
 from omniqubo.converters.utils import INTER_STR_SEP
-from omniqubo.converters.varreplace import BitToSpin, TrivialIntToBit, VarOneHot
+from omniqubo.converters.varreplace import BitToSpin, TrivialIntToBit, VarOneHot, VarReplace
 from omniqubo.models.sympyopt.constraints import ConstraintEq, ConstraintIneq
-from omniqubo.models.sympyopt.vars import BitVar, IntVar, VarAbsSympyOpt
+from omniqubo.models.sympyopt.vars import BitVar, IntVar
 
 from .sympyopt import MAX_SENSE, MIN_SENSE, SympyOpt
 
@@ -17,18 +20,32 @@ from .sympyopt import MAX_SENSE, MIN_SENSE, SympyOpt
 @convert.register
 def convert_sympyopt_eqtoobj(model: SympyOpt, converter: EqToObj):
     assert can_convert(model, converter)
-    c = model.constraints[converter.name]
-    assert isinstance(c, ConstraintEq)
-    if model.sense == MIN_SENSE:
-        model.objective += converter.penalty * (c.exprleft - c.exprright) ** 2
+    constr_names: List[str] = []
+    if converter.is_regexp:
+        _rex = re.compile(converter.name)
+        for cname in model.constraints:
+            c = model.constraints[cname]
+            if _rex.fullmatch(cname) and isinstance(c, ConstraintEq):
+                constr_names.append(cname)
     else:
-        model.objective -= converter.penalty * (c.exprleft - c.exprright) ** 2
-    model.constraints.pop(converter.name)
+        assert isinstance(model.constraints[converter.name], ConstraintEq)
+        constr_names.append(converter.name)
+
+    for cname in constr_names:
+        c = model.constraints[cname]
+        assert isinstance(c, ConstraintEq)
+        if model.sense == MIN_SENSE:
+            model.objective += converter.penalty * (c.exprleft - c.exprright) ** 2
+        else:
+            model.objective -= converter.penalty * (c.exprleft - c.exprright) ** 2
+        model.constraints.pop(cname)
     return model
 
 
 @can_convert.register
 def can_convert_sympyopt_eqtoobj(model: SympyOpt, converter: EqToObj) -> bool:
+    if converter.is_regexp:
+        return True
     name = converter.name
     return name in model.constraints and type(model.constraints[name]) is ConstraintEq
 
@@ -73,24 +90,51 @@ def can_convert_sympyopt_makemin(model: SympyOpt, converter: MakeMin) -> bool:
 @convert.register
 def convert_sympyopt_removeconstraint(model: SympyOpt, converter: RemoveConstraint) -> SympyOpt:
     assert can_convert(model, converter)
-    model.constraints.pop(converter.name)
+    # TODO implement condition functions to data for interpret
+
+    if converter.is_regexp:
+        _rex = re.compile(converter.name)
+        to_be_removed = []
+        for cname in model.constraints:
+            if _rex.fullmatch(cname):
+                to_be_removed.append(cname)
+        for cname in to_be_removed:
+            model.constraints.pop(cname)
+    else:
+        model.constraints.pop(converter.name)
+
     return model
 
 
 @can_convert.register
 def can_convert_sympyopt_removeconstraint(model: SympyOpt, converter: RemoveConstraint) -> bool:
+    if converter.is_regexp:
+        return True
     return converter.name in model.constraints
 
 
 # general commands for VarReplace
 
 
-def _sub_expression(model: SympyOpt, expr: Expr, var: VarAbsSympyOpt):
-    model.objective = model.objective.xreplace({var.var: expr})
+def _sub_expression(model: SympyOpt, rule_dict: Dict[Symbol, Expr]):
+    model.objective = model.objective.xreplace(rule_dict)
     for c in model.constraints.values():
         if isinstance(c, (ConstraintEq, ConstraintIneq)):
-            c.exprleft = c.exprleft.xreplace({var.var: expr})
-            c.exprright = c.exprright.xreplace({var.var: expr})
+            c.exprleft = c.exprleft.xreplace(rule_dict)
+            c.exprright = c.exprright.xreplace(rule_dict)
+
+
+def _matching_varnames(model: SympyOpt, converter: VarReplace, filtering_fun: Callable):
+    var_to_replace: List[str] = []
+    if converter.is_regexp:
+        _rex = re.compile(converter.varname)
+        for varname in model.variables:
+            if _rex.fullmatch(varname) and filtering_fun(varname):
+                var_to_replace.append(varname)
+    else:
+        assert isinstance(model.variables[converter.varname], IntVar)
+        var_to_replace.append(converter.varname)
+    return var_to_replace
 
 
 # VarOneHot
@@ -106,59 +150,89 @@ def _get_expr_add_constr_onehot(model: SympyOpt, var: IntVar) -> Expr:
     c = ConstraintEq(sum(x for x in xs), 1)
     model.add_constraint(c, name=f"{INTER_STR_SEP}OH_{name}")
 
-    # return
     return sum(v * x for x, v in zip(xs, range(lb, ub + 1)))
 
 
-@convert.register
-def convert_sympyopt_varonehot(model: SympyOpt, converter: VarOneHot) -> SympyOpt:
-    assert can_convert(model, converter)
-    var = model.variables[converter.varname]
-    assert isinstance(var, IntVar)
-
-    sub_expr = _get_expr_add_constr_onehot(model, var)
-
-    # substitute expression
-    _sub_expression(model, sub_expr, var)
-
-    model.variables.pop(converter.varname)
-    converter.data["lb"] = var.lb
-    converter.data["ub"] = var.ub
-    return model
-
-
-@can_convert.register
-def can_convert_sympyopt_varonehot(model: SympyOpt, converter: VarOneHot) -> bool:
-    var = model.variables[converter.varname]
+def _can_convert_onehot_sing(model: SympyOpt, name: str) -> bool:
+    var = model.variables[name]
     if not isinstance(var, IntVar):
         return False
     return var.lb != -INF and var.ub != INF
 
 
+@convert.register
+def convert_sympyopt_varonehot(model: SympyOpt, converter: VarOneHot) -> SympyOpt:
+    assert can_convert(model, converter)
+
+    def filtering_fun(vname):
+        return _can_convert_onehot_sing(model, vname)
+
+    var_to_replace = _matching_varnames(model, converter, filtering_fun)
+
+    rule_dict = dict()
+    for vname in var_to_replace:
+        var = model.variables[vname]
+        assert isinstance(var, IntVar)
+        rule_dict[var.var] = _get_expr_add_constr_onehot(model, var)
+
+    _sub_expression(model, rule_dict)
+
+    converter.data["bounds"] = dict()
+    for vname in var_to_replace:
+        var = model.variables.pop(vname)
+        assert isinstance(var, IntVar)
+        converter.data["bounds"][vname] = (var.lb, var.ub)
+    return model
+
+
+@can_convert.register
+def can_convert_sympyopt_varonehot(model: SympyOpt, converter: VarOneHot) -> bool:
+    if converter.is_regexp:
+        return True
+    return _can_convert_onehot_sing(model, converter.varname)
+
+
+def _can_convert_trivitb_sing(model: SympyOpt, name: str) -> bool:
+    var = model.variables[name]
+    return isinstance(var, IntVar) and var.ub - var.lb == 1
+
+
 # TrivialIntToBit:
-
-
 @convert.register
 def convert_sympyopt_trivialinttobit(model: SympyOpt, converter: TrivialIntToBit) -> SympyOpt:
     assert can_convert(model, converter)
-    var = model.variables[converter.varname]
-    assert isinstance(var, IntVar)
 
-    bit_var = model.bit_var(f"{converter.varname}{INTER_STR_SEP}itb")
-    sub_expr = var.lb + bit_var
+    def filtering_fun(vname):
+        return _can_convert_trivitb_sing(model, vname)
 
-    # substitute expression
-    _sub_expression(model, sub_expr, var)
+    var_to_replace = _matching_varnames(model, converter, filtering_fun)
+    if converter.optional and not converter.is_regexp:
+        if not _can_convert_trivitb_sing(model, var_to_replace[0]):
+            # do nothing
+            return model
 
-    model.variables.pop(converter.varname)
-    converter.data["lb"] = var.lb
+    rule_dict = dict()
+    for vname in var_to_replace:
+        var = model.variables[vname]
+        assert isinstance(var, IntVar)
+        bit_var = model.bit_var(f"{converter.varname}{INTER_STR_SEP}itb")
+        rule_dict[var] = var.lb + bit_var
+
+    _sub_expression(model, rule_dict)
+
+    converter.data["lb"] = dict()
+    for vname in var_to_replace:
+        var = model.variables.pop(vname)
+        assert isinstance(var, IntVar)
+        converter.data["lb"][vname] = var.lb
     return model
 
 
 @can_convert.register
 def can_convert_sympyopt_trivialinttobit(model: SympyOpt, converter: TrivialIntToBit) -> bool:
-    var = model.variables[converter.varname]
-    return isinstance(var, IntVar) and var.ub - var.lb == 1
+    if converter.is_regexp or converter.optional:
+        return True
+    return _can_convert_trivitb_sing(model, converter.varname)
 
 
 #  BitToSpin
@@ -172,21 +246,33 @@ def _get_expr_add_constr_bittospin(model: SympyOpt, converter: BitToSpin) -> Exp
         return (1 + var) / 2
 
 
+def _can_convert_bittospin_sing(model: SympyOpt, name: str) -> bool:
+    return isinstance(model.variables[name], BitVar)
+
+
 @convert.register
 def convert_sympyopt_bittospin(model: SympyOpt, converter: BitToSpin) -> SympyOpt:
     assert can_convert(model, converter)
-    var = model.variables[converter.varname]
-    assert isinstance(var, BitVar)
 
-    sub_expr = _get_expr_add_constr_bittospin(model, converter)
+    def filtering_fun(vname):
+        return _can_convert_bittospin_sing(model, vname)
 
-    # substitute expression
-    _sub_expression(model, sub_expr, var)
+    var_to_replace = _matching_varnames(model, converter, filtering_fun)
 
-    model.variables.pop(converter.varname)
+    rule_dict = dict()
+    for vname in var_to_replace:
+        var = model.variables[vname]
+        rule_dict[var] = _get_expr_add_constr_bittospin(model, converter)
+
+    _sub_expression(model, rule_dict)
+
+    for vname in var_to_replace:
+        var = model.variables.pop(vname)
     return model
 
 
 @convert.register
 def can_convert_sympyopt_bittospin(model: SympyOpt, converter: BitToSpin) -> bool:
-    return isinstance(model.variables[converter.varname], BitVar)
+    if converter.is_regexp:
+        return True
+    return _can_convert_bittospin_sing(model, converter.varname)

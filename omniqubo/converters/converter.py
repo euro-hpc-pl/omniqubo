@@ -31,7 +31,6 @@ class ConverterAbs(ABC):
     @abstractmethod
     def __init__(self) -> None:
         self.data = {}  # type: Dict[str, Any]
-        pass
 
 
 @multimethod

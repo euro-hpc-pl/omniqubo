@@ -45,5 +45,5 @@ class TestOneHot:
         sympyopt.add_constraint(c, "second")
 
         assert sympyopt_small != sympyopt
-        sympyopt = convert(sympyopt, RemoveConstraint("second"))
+        sympyopt = convert(sympyopt, RemoveConstraint("second", False, False))
         assert sympyopt_small == sympyopt

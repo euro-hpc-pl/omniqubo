@@ -43,21 +43,21 @@ class TestOmniqubo:
         sympyopt.add_constraint(ConstraintEq(y1 + 10.5 * y2, 1.1), name="lin2")
 
         omniqubo = Omniqubo(sympyopt)
-        omniqubo.int_to_bits(name="y1", mode="one-hot")
+        omniqubo.int_to_bits(names="y1", mode="one-hot", is_regexp=False)
         assert not omniqubo.is_bm()
-        omniqubo.int_to_bits(name="y20", mode="one-hot")
+        omniqubo.int_to_bits(names="y20", mode="one-hot", is_regexp=False)
         assert omniqubo.is_bm()
 
         omniqubo = Omniqubo(sympyopt)
         assert not omniqubo.is_bm()
-        omniqubo.int_to_bits(regname="y[0-9]+", mode="one-hot")
+        omniqubo.int_to_bits(names="y[0-9]+", mode="one-hot")
         assert omniqubo.is_bm()
 
         omniqubo = Omniqubo(sympyopt)
         z = sympyopt.int_var(lb=3, ub=6, name="z")
         sympyopt.add_constraint(ConstraintEq(y1 + 10.5 * y2, z), name="with z")
         assert not omniqubo.is_bm()
-        omniqubo.int_to_bits(mode="one-hot")
+        omniqubo.int_to_bits(".*", mode="one-hot")
         assert omniqubo.is_bm()
 
     def test_name_minmax(self):
@@ -89,17 +89,17 @@ class TestOmniqubo:
         sympyopt.add_constraint(ConstraintEq(y, 1.1 + x), name="lin2")
 
         omniqubo = Omniqubo(deepcopy(sympyopt))
-        omniqubo.rm_constraint(name="lin1")
+        omniqubo.rm_constraints(names="lin1", is_regexp=False)
         assert omniqubo.model.constraints.keys() == {"lin2"}
         assert omniqubo.model.objective != 0
 
         omniqubo = Omniqubo(deepcopy(sympyopt))
-        omniqubo.rm_constraint(regname="lin[1-2]")
+        omniqubo.rm_constraints(names="lin[1-2]")
         assert len(omniqubo.model.constraints.keys()) == 0
         assert omniqubo.model.objective != 0
 
         omniqubo = Omniqubo(deepcopy(sympyopt))
-        omniqubo.rm_constraint()
+        omniqubo.rm_constraints(names=".*")
         assert len(omniqubo.model.constraints.keys()) == 0
         assert omniqubo.model.objective != 0
 
@@ -113,17 +113,17 @@ class TestOmniqubo:
         sympyopt.add_constraint(ConstraintEq(y1 ** 2 + 10.5 * y2, 1.1), name="lin23")
 
         omniqubo = Omniqubo(sympyopt)
-        omniqubo.eq_to_obj(name="lin1", penalty=10)
+        omniqubo.eq_to_obj(names="lin1", is_regexp=False, penalty=10)
         assert len(omniqubo.model.constraints) == 1
-        omniqubo.eq_to_obj(name="lin23", penalty=2.0)
+        omniqubo.eq_to_obj(names="lin23", is_regexp=False, penalty=2.0)
         assert len(omniqubo.model.constraints) == 0
 
         omniqubo = Omniqubo(sympyopt)
         assert len(omniqubo.model.constraints) == 2
-        omniqubo.eq_to_obj(regname="lin", penalty=1.0)
+        omniqubo.eq_to_obj(names="lin", penalty=1.0)
         assert len(omniqubo.model.constraints) == 2
 
-        omniqubo.eq_to_obj(regname="lin[0-9]+", penalty=1.0)
+        omniqubo.eq_to_obj(names="lin[0-9]+", penalty=1.0)
         assert len(omniqubo.model.constraints) == 0
 
     def test_qubo_isstatements(self):

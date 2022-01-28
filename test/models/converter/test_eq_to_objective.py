@@ -12,8 +12,8 @@ class TestEqToObj:
         sympyopt.minimize(2 * x - 3 * y + 2)
         sympyopt.add_constraint(ConstraintEq(2 * x - 3 * y, 3), name="constr1")
         sympyopt.add_constraint(ConstraintEq(2 * x ** 2 - 3 * y, 0), name="constr2")
-        conv1 = EqToObj("constr1", 10)
-        conv2 = EqToObj("constr2", 3.5)
+        conv1 = EqToObj("constr1", False, 10)
+        conv2 = EqToObj("constr2", False, 3.5)
         sympyopt = convert(sympyopt, conv1)
         sympyopt = convert(sympyopt, conv2)
 
@@ -32,8 +32,8 @@ class TestEqToObj:
         sympyopt.maximize(2 * x - 3 * y + 2)
         sympyopt.add_constraint(ConstraintEq(2 * x - 3 * y, 3), name="constr1")
         sympyopt.add_constraint(ConstraintEq(2 * x ** 2 - 3 * y, 0), name="constr2")
-        conv1 = EqToObj("constr1", 10)
-        conv2 = EqToObj("constr2", 3.5)
+        conv1 = EqToObj("constr1", False, 10)
+        conv2 = EqToObj("constr2", False, 3.5)
         sympyopt = convert(sympyopt, conv1)
         sympyopt = convert(sympyopt, conv2)
 

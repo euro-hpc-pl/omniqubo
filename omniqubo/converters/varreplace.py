@@ -1,5 +1,3 @@
-from typing import Any, Dict
-
 import numpy as np
 from pandas import DataFrame
 
@@ -10,20 +8,23 @@ from .utils import INTER_STR_SEP
 class VarReplace(ConverterAbs):
     """Replaces the variable with some formula.
 
-    Transform all occurrences of the variable varname in the model with the binary
-    formula, and add extra constraint if required. This is an abstract class
-    which can be used for various integer encodings.
+    Transform all occurrences of the variable varname in the model with the
+    binary formula, and add extra constraint if required. This is an abstract
+    class which can be used for various integer encodings. If is_regexp is set
+    to True, then all appropriate variables should be replaced.
 
     .. note::
-        Variable varname should disappear from the model, including its list of
+        Variables varname disappear from the model, including its list of
         variables.
 
     :param varname: variable to be replaced
+    :param is_regexp: flag deciding if varname is regular expression
     """
 
-    def __init__(self, varname: str) -> None:
+    def __init__(self, varname: str, is_regexp: bool) -> None:
         self.varname = varname
-        self.data = dict()  # type: Dict[str, Any]
+        self.is_regexp = is_regexp
+        super().__init__()
 
 
 class VarOneHot(VarReplace):
@@ -32,13 +33,15 @@ class VarOneHot(VarReplace):
     Replaces integer variables with one-hot encoding, and add constraint that
     sum of new added bits is equal to one. For variable lb <= y <= ub
     the encoding creates ub-lb+1 binary variables. The limits of y needs to be
-    finite integer numbers.
+    finite integer numbers. If is_regexp is set to True, then all bounded
+    integer variables are replaced.
 
     :param varname: the replaced integer variable
+    :param is_regexp: flag deciding if varname is regular expression
     """
 
-    def __init__(self, varname: str) -> None:
-        super().__init__(varname)
+    def __init__(self, varname: str, is_regexp: bool) -> None:
+        super().__init__(varname, is_regexp)
 
 
 @interpret.register
@@ -69,13 +72,18 @@ class TrivialIntToBit(VarReplace):
     """Replace integer with binary variable.
 
     Replaces integer variables y with binary variable lb + b, where
-    lb <= y <= lb+1 is assumed. lb should be finite integer number.
+    lb <= y <= lb+1 is assumed. lb should be finite integer number. If is_regexp
+    is set to True, then all integer variables satisfying the constraint above
+    are replaced.
 
     :param varname: the replaced integer variable
+    :param is_regexp: flag deciding if varname is regular expression
+    :param optional: if set to True, the converts only if possible
     """
 
-    def __init__(self, varname: str) -> None:
-        super().__init__(varname)
+    def __init__(self, varname: str, is_regexp: bool, optional: bool) -> None:
+        super().__init__(varname, is_regexp)
+        self.optional = optional
 
 
 @interpret.register
@@ -91,14 +99,16 @@ class BitToSpin(VarReplace):
     """Replace binary variable with spin variable.
 
     Replaces binary variable b with spin variable s. The formula is (1-s)/2
-    if reversed is set to true, or (1+s)/2 otherwise.
+    if reversed is set to False, or (1+s)/2 otherwise. If is_regexp is set to
+    True, then all binary variables are replaced.
 
     :param varname: the replaced binary variable
+    :param is_regexp: flag deciding if varname is regular expression
     :param reversed: the flag denoting which formula is used for replacement
     """
 
-    def __init__(self, varname: str, reversed: bool) -> None:
-        super().__init__(varname)
+    def __init__(self, varname: str, is_regexp: bool, reversed: bool) -> None:
+        super().__init__(varname, is_regexp)
         self.reversed = reversed
 
 

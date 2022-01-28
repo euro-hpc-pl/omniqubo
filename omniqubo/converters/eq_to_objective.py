@@ -13,15 +13,23 @@ class EqToObj(ConverterAbs):
     nonnegative number. When interpreting it updates the feasibility of the
     samples according to the removed constraint.
 
+    If is_regexp is True, then all convertible equality constraints will be
+    transformed.
+
     :param name: name of the constraint f(x) = 0
+    :param is_regexp: flag deciding if name is a string or regular expression.
     :param penalty: penalty used
     """
 
-    def __init__(self, name: str, penalty: float) -> None:
+    def __init__(self, name: str, is_regexp: bool, penalty: float) -> None:
         self.name = name
+        self.is_regexp = is_regexp
+
         assert penalty >= 0
-        # TODO warning for 0 penalty
+        if penalty == 0:
+            warn(f"penalty in EqToObj for {name} is zero")
         self.penalty = penalty
+        super().__init__()
 
 
 @interpret.register
