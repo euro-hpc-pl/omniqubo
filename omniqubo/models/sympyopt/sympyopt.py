@@ -309,7 +309,7 @@ class SympyOpt(ModelAbs):
 
         raise NotImplementedError()
 
-    def is_pp(self) -> bool:
+    def is_pip(self) -> bool:
         """Check if model is Polynomial Integer Program.
 
         Model is Polynomial Integer Program if all variables are BitVar or

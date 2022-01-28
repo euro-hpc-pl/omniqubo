@@ -1,5 +1,6 @@
 BinaryQuadraticModel
 Ising
+backend
 bool
 bqm
 dimod
@@ -13,6 +14,7 @@ nonnegative
 np
 omniqubo
 quadratically
+quadratization
 sympy
 transpile
 transpiled

@@ -16,12 +16,23 @@ from .models.sympyopt.transpiler.transpiler import transpile
 
 
 class Omniqubo:
-    def __init__(self, model, verbatim_logs: bool = False, backend=None) -> None:
+    """Model conversion managing class.
+
+    Core class of the Omniqubo package, running transpiler, conversions
+    and exports of the model, and interpreting the results.
+
+    :param model: model to be converted
+    :param verbatim_logs: flag for saving models produced with each step
+    :param model_backend: backend used for conversion
+
+    """
+
+    def __init__(self, model, verbatim_logs: bool = False, model_backend=None) -> None:
         self.orig_model = deepcopy(model)
-        if backend is None or backend == "sympyopt":
+        if model_backend is None or model_backend == "sympyopt":
             self.model = transpile(self.orig_model)  # type: ModelAbs
         else:
-            raise ValueError(f"Unknown backend {backend}")
+            raise ValueError(f"Unknown backend {model_backend}")
         self.logs = []  # type: List[ConverterAbs]
         self.model_logs = []  # type: List[ModelAbs]
         self.verbatim_logs = verbatim_logs
@@ -34,17 +45,62 @@ class Omniqubo:
         return self.model
 
     def interpret(self, samples: DataFrame) -> DataFrame:
+        """Interpret optimization results
+
+        Interpret optimization result according to conversions done to the
+        model. Add extra column "feasible" for pointing if the samples are
+        feasible. Values for each variable should be in separate columns.
+        Variables created during the conversion process will be removed, and
+        only those present in the original model will be left at the end.
+
+        :param samples: samples to be interpreted
+        :return: interpreted samples with "feasible" flag
+        """
+        samples["feasible"] = True
         for converter in reversed(self.logs):
             samples = interpret(samples, converter)
         return samples
 
-    def to_qubo(self):
+    def to_qubo(self, penalty: float, quadratization_strength: float):
+        """Transform PIP into QUBO
+
+        In the given order: transform inequality to equality, transform
+        integers with binary encodings (with trivial int to bit conversions),
+        shift equality constraint to the objective function with penalty,
+        apply quadratization.
+
+        .. note::
+            Not implemented equality
+
+        :param penalty: penalty used for shifting equality.
+        :param quadratization_strength: penalty used in quadratization.
+        """
         raise NotImplementedError()
 
-    def to_hobo(self):
+    def to_hobo(self, penalty: float):
+        """Transform PIP into QUBO
+
+        In the given order: transform inequality to equality, transform
+        integers with binary encodings (with trivial int to bit conversions),
+        shift equality constraints to the objective function with penalty.
+
+        .. note::
+            Not implemented equality
+
+        :param penalty: penalty used for shifting equality.
+        """
         raise NotImplementedError()
 
     def export(self, mode: str):
+        """Export the model
+
+        Export the model in a form specified by mode, for example
+        BinaryQuadraticModel from dimod.
+
+        :param mode: specifies the type of the returned model
+        :raises ValueError: if unknown mode
+        :return: return the transpiled model
+        """
         if mode == "bqm":
             if isinstance(self.model, SympyOpt):  # HACK
                 return SympyOptToDimod().transpile(self.model)
@@ -52,16 +108,46 @@ class Omniqubo:
             raise ValueError(f"Unknown mode {mode}")
 
     def make_max(self) -> ModelAbs:
+        """Transform the model into maximization problem
+
+        Change f(x) into -f(x) if the problem was a minimization problem before.
+
+        :return: maximization problem
+        """
         self._convert(MakeMax())
         return self.model
 
     def make_min(self) -> ModelAbs:
+        """Transform the model into minimization problem
+
+        Change f(x) into -f(x) if the problem was a maximization problem before.
+
+        :return: minimization problem
+        """
         self._convert(MakeMin())
         return self.model
 
     def rm_constraints(
         self, names: str, is_regexp: bool = True, check_constraints: bool = False
     ) -> ModelAbs:
+        """Remove constraints of given name
+
+        If is_regexp is True, then names is considered to be a regular
+        expression with convention from re package. Otherwise, converter will
+        look for the constraint with such name explicitly. If check_constraints
+        is False, the interpret will not update "feasible" in the samples even
+        if the constraint is violated.
+
+        .. note::
+            Removing constraint produced by Omniqubo may result in badly
+            interpreted samples.
+
+        :param names: name of the remove constraints
+        :param is_regexp: specifies if names should be treated as regular expression
+        :param check_constraints: specifies if constraints should be check by
+            interpret
+        :return: updated model
+        """
         self._convert(RemoveConstraint(names, is_regexp, check_constraints))
         return self.model
 
@@ -105,8 +191,8 @@ class Omniqubo:
     def is_bm(self) -> bool:
         return self.model.is_bm()
 
-    def is_pp(self) -> bool:
-        return self.model.is_pp()
+    def is_pip(self) -> bool:
+        return self.model.is_pip()
 
     def is_ising(self, locality: int = None) -> bool:
         return self.model.is_ising(locality=locality)
