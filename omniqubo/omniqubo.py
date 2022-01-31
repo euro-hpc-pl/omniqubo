@@ -16,7 +16,7 @@ from .models.sympyopt.transpiler.transpiler import transpile
 
 
 class Omniqubo:
-    """Model conversion managing class.
+    """Model conversion managing class
 
     Core class of the Omniqubo package, running transpiler, conversions
     and exports of the model, and interpreting the results.
@@ -36,8 +36,18 @@ class Omniqubo:
         self.logs = []  # type: List[ConverterAbs]
         self.model_logs = []  # type: List[ModelAbs]
         self.verbatim_logs = verbatim_logs
+        if self.verbatim_logs:
+            self.model_logs.append(deepcopy(self.model))
 
-    def _convert(self, convstep: ConverterAbs):
+    def convert(self, convstep: ConverterAbs):
+        """Apply the conversion on the model
+
+        Conversion step are logged, and if varbatim_logs is true, then copy of
+        updated model is stored in self.model_logs.
+
+        :param convstep: Chosen conversion method
+        :return: updated model
+        """
         self.logs.append(convstep)
         self.model = convert(self.model, convstep)
         if self.verbatim_logs:
@@ -114,7 +124,7 @@ class Omniqubo:
 
         :return: maximization problem
         """
-        self._convert(MakeMax())
+        self.convert(MakeMax())
         return self.model
 
     def make_min(self) -> ModelAbs:
@@ -124,7 +134,7 @@ class Omniqubo:
 
         :return: minimization problem
         """
-        self._convert(MakeMin())
+        self.convert(MakeMin())
         return self.model
 
     def rm_constraints(
@@ -142,57 +152,170 @@ class Omniqubo:
             Removing constraint produced by Omniqubo may result in badly
             interpreted samples.
 
-        :param names: name of the remove constraints
+        :param names: names of the remove constraints
         :param is_regexp: specifies if names should be treated as regular expression
         :param check_constraints: specifies if constraints should be check by
             interpret
         :return: updated model
         """
-        self._convert(RemoveConstraint(names, is_regexp, check_constraints))
+        self.convert(RemoveConstraint(names, is_regexp, check_constraints))
         return self.model
 
     def eq_to_obj(self, names: str, is_regexp: bool = True, penalty: float = None) -> ModelAbs:
+        """Shift equality constraints to objective function
+
+        If is_regexp is True, then names is considered to be a regular
+        expression with convention from re package. Otherwise, converter will
+        look for the constraint with such name explicitly. penalty should be
+        sufficiently big nonnegative number. 0 penalty is allowed, but means
+        that equality constraints will be ignored (equivalent to
+        rm_constraints) except feasibility will always be checked.
+
+        :param names: names of shifted constraints
+        :param is_regexp: specifies if names should be treated as regular expression
+        :param penalty: specifies the penalty of the shifted constraints.
+        :return: updated model
+        """
         if penalty is None:
             penalty = DEFAULT_PENALTY_VALUE
-        self._convert(EqToObj(names, is_regexp, penalty))
+        self.convert(EqToObj(names, is_regexp, penalty))
         return self.model
 
     def int_to_bits(
         self, names: str, mode: str, is_regexp: bool = True, trivial_conv: bool = True
     ) -> ModelAbs:
+        """Convert integer variables to expression over bits
+
+        If is_regexp is True, then names is considered to be a regular
+        expression with convention from re package. Otherwise, converter will
+        look for variables with such name explicitly. mode specifies the
+        encoding of the integer variables, currently "one-hot" is implemented
+        only. If trivial_conv is set to True, then all integers y with bound
+        lb <= y <= lb+1 will be directly converted into lb + b, where b is
+        binary variable, irrespective of mode chosen.
+
+        :param names: names of converted variables
+        :param mode: encoding method used
+        :param is_regexp: specifies if names should be treated as regular expression
+        :param trivial_conv: specify the 2-range integer variable conversion behavior
+        :raises ValueError: if mode value is not known
+        :return: updated model
+        """
         if trivial_conv and not is_regexp:
-            self._convert(TrivialIntToBit(names, is_regexp, optional=True))
+            self.convert(TrivialIntToBit(names, is_regexp, optional=True))
 
         if mode == "one-hot":
-            self._convert(VarOneHot(names, is_regexp))
+            self.convert(VarOneHot(names, is_regexp))
         else:
             raise ValueError("Uknown mode {mode}")  # pragma: no cover
         return self.model
 
     def bit_to_spin(self, names: str, is_regexp: bool = True, reversed: bool = False) -> ModelAbs:
-        self._convert(BitToSpin(names, is_regexp, reversed))
+        """Convert bit variables to spin variables
+
+        If is_regexp is True, then names is considered to be a regular
+        expression with convention from re package. Otherwise, converter will
+        look for variables with such name explicitly. if reversed is False,
+        then b <- (1-s)/2 formula is used, where b is bit and s is spin.
+        Otherwise, b <- (1+s)/2 is used.
+
+        :param names: names of the binary variables
+        :param is_regexp: specifies if names should be treated as regular expression
+        :param reversed: spin conversion method
+        :return: updated model
+        """
+        self.convert(BitToSpin(names, is_regexp, reversed))
         return self.model
 
     def is_qubo(self) -> bool:
+        """Check if model is Quadratic Unconstrained Binary Optimization (QUBO)
+
+        Model is Quadratic Unconstrained Binary Optimization if all variables
+        are bits, objective function is quadratic polynomial and there are no
+        constraints.
+
+        :return: flag stating if the model is QUBO
+        """
         return self.model.is_qubo()
 
     def is_hobo(self) -> bool:
+        """Check if model is Higher Order Binary Optimization (HOBO)
+
+        Model is Higher Order Binary Optimization if all variables are bits,
+        objective function is a polynomial and there are no constraints.
+
+        .. note::
+            every pseudo-Boolean function is in fact a pseudo-Boolean
+            polynomial, however here it is required that the objective
+            function is written in an explicit form
+
+        .. note:: HOBO is sometimes called Polynomial Unconstrained Binary
+            Optimization
+
+        :return: flag stating if the model is HOBO
+        """
         return self.model.is_hobo()
 
-    def is_lip(self) -> bool:
-        return self.model.is_lip()
+    def is_ilp(self) -> bool:
+        """Check if model is Integer Linear Program (ILP)
+
+        Model is ILP if all variables are bits or integers, and objective and
+        constraints are linear.
+
+        :return: flag stating if the model is ILP
+        """
+        return self.model.is_ilp()
 
     def is_qip(self) -> bool:
+        """Check if model is Quadratic Integer Program (QIP)
+
+        Model is QIP if all variables are bits or integers, objective is
+        quadratic polynomial, and constraints are linear.
+
+        :return: flag stating if the model is QIP
+        """
         return self.model.is_qip()
 
     def is_qcqp(self) -> bool:
+        """Check if model is Quadratically Constrained Quadratic Program (QCQP)
+
+        Model is QCQP if all variables are bits or integers, objective and
+        constraints are quadratic polynomials.
+
+        :return: flag stating if the model is QCQP
+        """
         return self.model.is_qcqp()
 
     def is_bm(self) -> bool:
+        """Check if model is Binary Model (BM)
+
+        Model is BM if all variables are bits or spins.
+
+        :return: flag stating if the model is BM
+        """
         return self.model.is_bm()
 
     def is_pip(self) -> bool:
+        """Check if model is Polynomial Integer Program (PIP)
+
+        Model is PIP if all variables are bits or integers, objective and
+        constraints are polynomials.
+
+        :return: flag stating if the model is PIP
+        """
         return self.model.is_pip()
 
-    def is_ising(self, locality: int = None) -> bool:
+    def is_ising(self, locality: int = 2) -> bool:
+        """Check if model is an Ising Model
+
+        Model is Ising model if all variables are spins, objective function is
+        a polynomial of at most locality order and there are no constraints.
+
+        .. note::
+            It is required that the objective function is written as a
+            polynomial in an explicit form
+
+        :param locality: maximal locality, defaults to 2
+        :return: flag stating if the model is Ising model with given locality
+        """
         return self.model.is_ising(locality=locality)

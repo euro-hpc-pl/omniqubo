@@ -18,11 +18,12 @@ class ConverterAbs(ABC):
     The method convert is responsible for converting model, while interpret
     transforms DataFrame samples data in compliance with the conversion.
 
-    Optionally, one can implement can_checkc(model, converter) -> bool which
+    Optionally, one can implement can_check(model, converter) -> bool which
     verifies if the model can be transformed in compliance with the converter.
 
     If the samples will no longer be feasible, interpret should change the
-    "feasible" column in the DataFrame.
+    "feasible" column in the DataFrame. Converter have additional dictionary
+    data, in which it stores necessary information for the interpret.
 
     Converter with can have additional members specifying the conversion
     details.

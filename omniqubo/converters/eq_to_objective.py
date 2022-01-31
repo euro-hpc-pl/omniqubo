@@ -6,7 +6,7 @@ from .converter import ConverterAbs, interpret
 
 
 class EqToObj(ConverterAbs):
-    """Converter for shifting the equality constraint to objective function.
+    """Converter for shifting the equality constraint to objective function
 
     Converter which removes the constraint of the form f(x) = 0 and updates
     the objective function with penalty * f(x)**2, where penalty is a

@@ -39,9 +39,9 @@ class TestNewConvert:
         conv = MultiplyBy(2.0)
 
         omni = Omniqubo(sympyopt)
-        omni._convert(conv)
+        omni.convert(conv)
         assert omni.model == sympyopt_ref
 
         conv = MultiplyBy(-1)
         with pytest.raises(AssertionError):
-            omni._convert(conv)
+            omni.convert(conv)

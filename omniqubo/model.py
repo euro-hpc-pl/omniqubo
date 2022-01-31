@@ -8,6 +8,14 @@ MAX_SENSE = "max"
 
 
 class ModelAbs(ABC):
+    """Abstract class for models
+
+    All model implementations should have the following members: objective
+    for objective function, dictionary of constraints, dictionary of variables
+    and a sense (MIN_SENSE or MAX_SENSE). For decision problems, objective
+    function should be set to 0.
+    """
+
     @abstractmethod
     def __init__(self) -> None:
         self.variables = dict()  # type: Dict[str,Any]
@@ -19,7 +27,7 @@ class ModelAbs(ABC):
 
     @abstractmethod
     def minimize(self, obj) -> None:
-        """Set the function to be minimized.
+        """Set the function to be minimized
 
         :param obj: minimized expression
         """
@@ -27,7 +35,7 @@ class ModelAbs(ABC):
 
     @abstractmethod
     def maximize(self, obj) -> None:
-        """Set the function to be maximized.
+        """Set the function to be maximized
 
         :param obj: maximized expression
         """
@@ -35,7 +43,7 @@ class ModelAbs(ABC):
 
     @abstractmethod
     def add_constraint(self, constraint, name: str = None) -> None:
-        """Add constraint to the model.
+        """Add constraint to the model
 
         If name is not provided, a random string is generated.
 
@@ -47,7 +55,7 @@ class ModelAbs(ABC):
 
     @abstractmethod
     def list_constraints(self) -> Dict:
-        """Return the dictionary of the constraints.
+        """Return the dictionary of the constraints
 
         :return: Dictionary of the constraints.
         """
@@ -55,7 +63,7 @@ class ModelAbs(ABC):
 
     @abstractmethod
     def get_objective(self):
-        """Return the objective function.
+        """Return the objective function
 
         :return: The objective function
         """
@@ -63,7 +71,7 @@ class ModelAbs(ABC):
 
     @abstractmethod
     def get_constraint(self, name: str):
-        """Return the constraint of the given name.
+        """Return the constraint of the given name
 
         :param name: name of the constraint
         :return: the constraint
@@ -72,7 +80,7 @@ class ModelAbs(ABC):
 
     @abstractmethod
     def get_var(self, name: str):
-        """Return the variable of the given name.
+        """Return the variable of the given name
 
         :param name: name of the variable
         :return: the variable
@@ -81,7 +89,7 @@ class ModelAbs(ABC):
 
     @abstractmethod
     def get_vars(self) -> Dict:
-        """Return the dictionary of variables.
+        """Return the dictionary of variables
 
         :return: dictionary of variables
         """
@@ -89,7 +97,7 @@ class ModelAbs(ABC):
 
     @abstractmethod
     def int_var(self, name: str, lb: int = None, ub: int = None):
-        """Create and return integer variable.
+        """Create and return integer variable
 
         :param name: name of the variable
         :param lb: minimal value, defaults to -INF
@@ -101,7 +109,7 @@ class ModelAbs(ABC):
 
     @abstractmethod
     def real_var(self, name: str, lb: float = None, ub: float = None):
-        """Create and return real variable.
+        """Create and return real variable
 
         :param name: name of the variable
         :param lb: minimal value, defaults to -INF
@@ -113,7 +121,7 @@ class ModelAbs(ABC):
 
     @abstractmethod
     def bit_var(self, name: str):
-        """Create and return binary variable.
+        """Create and return binary variable
 
         :param name: name of the variable
         :raises ValueError: if the name is already used
@@ -132,94 +140,89 @@ class ModelAbs(ABC):
         pass
 
     @abstractmethod
-    def is_lip(self) -> bool:
-        """Check if model is Linear Integer Program.
+    def is_ilp(self) -> bool:
+        """Check if model is Integer Linear Program (ILP)
 
-        Model is Linear Integer Program if all variables are bits or integers,
-        and objective and constraints are linear
+        Model is ILP if all variables are bits or integers, and objective and
+        constraints are linear
 
-        :return: flag stating if the model is Linear Integer Program
+        :return: flag stating if the model is ILP
         """
         pass
 
     @abstractmethod
     def is_qip(self) -> bool:
-        """Check if model is Quadratic Integer Program.
+        """Check if model is Quadratic Integer Program (QIP)
 
-        Model is Quadratic Integer Program if all variables are bits or
-        integers, objective is quadratic polynomial, and constraints are linear.
+        Model is QIP if all variables are bits or integers, objective is
+        quadratic polynomial, and constraints are linear.
 
-        :return: flag stating if the model is Quadratic Integer Program
+        :return: flag stating if the model is QIP
         """
         pass
 
     @abstractmethod
     def is_pip(self) -> bool:
-        """Check if model is Polynomial Integer Program.
+        """Check if model is Polynomial Integer Program (PIP)
 
-        Model is Polynomial Integer Program if all variables are bits or
-        integers, objective and constraints are polynomials.
+        Model is PIP if all variables are bits or integers, objective and
+        constraints are polynomials.
 
-        :return: flag stating if the model is Polynomial Integer Program
+        :return: flag stating if the model is PIP
         """
         pass
 
     @abstractmethod
     def is_qcqp(self) -> bool:
-        """Check if model is Quadratically Constrained Quadratic Program.
+        """Check if model is Quadratically Constrained Quadratic Program (QCQP)
 
-        Model is Quadratically Constrained Quadratic Program if all variables
-        are bits or integers, objective and constraints are quadratic
-        polynomials.
+        Model is QCQP if all variables are bits or integers, objective and
+        constraints are quadratic polynomials.
 
-        :return: flag stating if the model is Quadratically Constrained
-            Quadratic Program
+        :return: flag stating if the model is QCQP
         """
         pass
 
     @abstractmethod
     def is_bm(self) -> bool:
-        """Check if model is Binary Model.
+        """Check if model is Binary Model (BM)
 
-        Model is Binary Model if all variables are bits or spins.
+        Model is BM if all variables are bits or spins.
 
-        :return: flag stating if the model is Binary Model
+        :return: flag stating if the model is BM
         """
         pass
 
     @abstractmethod
     def is_qubo(self) -> bool:
-        """Check if model is Quadratic Unconstrained Binary Optimization.
+        """Check if model is Quadratic Unconstrained Binary Optimization (QUBO)
 
-        Model is Quadratic Unconstrained Binary Optimization if all variables
-        are bits, objective function is quadratic polynomial and there are no
-        constraints.
+        Model is QUBO if all variables are bits, objective function is
+        quadratic polynomial and there are no constraints.
 
-        :return: flag stating if the model is Quadratic Unconstrained Binary
-            Optimization
+        :return: flag stating if the model is QUBO
         """
         pass
 
     @abstractmethod
     def is_ising(self, locality: int = None) -> bool:
-        """Check if model is an Ising Model.
+        """Check if model is an Ising Model
 
         Model is Ising model if all variables are spins, objective function is
         a polynomial of at most locality order and there are no constraints.
 
-        :param locality: maximal locality, defaults to 2
-        :return: flag stating if the model is Quadratic Unconstrained Binary
-            Optimization
+        :param locality: maximal locality
+        :return: flag stating if the model is Ising model with given locality
         """
         pass
 
     @abstractmethod
     def is_hobo(self) -> bool:
-        """Check if model is Higher Order Binary Optimization.
+        """Check if model is Higher Order Binary Optimization (HOBO)
 
-        Model is Higher Order Binary Optimization if all variables are bits,
-        objective function is a polynomial and there are no constraints.
+        Model is HOBO if all variables are bits, objective function is a
+        polynomial and there are no constraints.
 
-        :return: flag stating if the model is Higher Order Binary Optimization
+        :return: flag stating if the model is HOBO
         """
         pass

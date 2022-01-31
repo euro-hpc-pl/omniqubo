@@ -13,7 +13,7 @@ from .vars import BitVar, IntVar, RealVar, SpinVar, VarAbsSympyOpt
 
 
 class SympyOpt(ModelAbs):
-    """Optimization modeling language based on Sympy.
+    """Optimization modeling language based on Sympy
 
     The object consist of a dictionary of named constraint, objective function
     which defaults to S(0), sense equal to MIN_SENSE or
@@ -39,7 +39,7 @@ class SympyOpt(ModelAbs):
         self.objective = obj
 
     def minimize(self, obj: Expr) -> None:
-        """Set the function to be minimized.
+        """Set the function to be minimized
 
         All variables must be already included in the model.
 
@@ -50,7 +50,7 @@ class SympyOpt(ModelAbs):
         self._set_objective(obj)
 
     def maximize(self, obj: Expr) -> None:
-        """Set the function to be maximized.
+        """Set the function to be maximized
 
         All variables must be already included in the model.
 
@@ -60,7 +60,7 @@ class SympyOpt(ModelAbs):
         self._set_objective(obj)
 
     def add_constraint(self, constraint: ConstraintAbs, name: str = None) -> None:
-        """Add constraint to the model.
+        """Add constraint to the model
 
         If name is not provided, a random string is generated. All variables
         must be already included in the model.
@@ -85,21 +85,21 @@ class SympyOpt(ModelAbs):
         self.constraints[name] = constraint
 
     def list_constraints(self) -> Dict[str, ConstraintAbs]:
-        """Return the dictionary of the constraints.
+        """Return the dictionary of the constraints
 
         :return: Dictionary of the constraints.
         """
         return self.constraints
 
     def get_objective(self) -> Expr:
-        """Return the objective function.
+        """Return the objective function
 
         :return: The objective function
         """
         return self.objective
 
     def get_constraint(self, name: str) -> ConstraintAbs:
-        """Return the constraint of the given name.
+        """Return the constraint of the given name
 
         :param name: name of the constraint
         :return: the constraint
@@ -107,7 +107,7 @@ class SympyOpt(ModelAbs):
         return self.constraints[name]
 
     def get_var(self, name: str) -> Symbol:
-        """Return the variable of the given name.
+        """Return the variable of the given name
 
         .. note::
             a Sympy object is returned, not the object of class VarAbs
@@ -118,7 +118,7 @@ class SympyOpt(ModelAbs):
         return self.variables[name].var
 
     def get_vars(self) -> Dict[str, Symbol]:
-        """Return the dictionary of variables.
+        """Return the dictionary of variables
 
         .. note::
             values of the dictionary are Sympy objects, not the object of class
@@ -129,7 +129,7 @@ class SympyOpt(ModelAbs):
         return {name: var.var for name, var in self.variables.items()}
 
     def int_var(self, name: str, lb: int = None, ub: int = None) -> Symbol:
-        """Create and return integer variable.
+        """Create and return integer variable
 
         :param name: name of the variable
         :param lb: minimal value, defaults to -INF
@@ -144,7 +144,7 @@ class SympyOpt(ModelAbs):
         return var.var
 
     def real_var(self, name: str, lb: float = None, ub: float = None) -> Symbol:
-        """Create and return real variable.
+        """Create and return real variable
 
         :param name: name of the variable
         :param lb: minimal value, defaults to -INF
@@ -159,7 +159,7 @@ class SympyOpt(ModelAbs):
         return var.var
 
     def bit_var(self, name: str) -> Symbol:
-        """Create and return binary variable.
+        """Create and return binary variable
 
         :param name: name of the variable
         :raises ValueError: if the name is already used
@@ -185,7 +185,7 @@ class SympyOpt(ModelAbs):
         return var.var
 
     def __eq__(self, model2) -> bool:
-        """Check if two optimization models equal.
+        """Check if two optimization models equal
 
         Equality is equivalent to: same sense, approximately same objective
         function, same constraints list, and same variables.
@@ -269,13 +269,13 @@ class SympyOpt(ModelAbs):
                         return False
         return True
 
-    def is_lip(self) -> bool:
-        """Check if model is Linear Integer Program.
+    def is_ilp(self) -> bool:
+        """Check if model is Integer Linear Program (ILP)
 
-        Model is Linear Integer Program if all variables are BitVar or IntVar,
+        Model is ILP if all variables are BitVar or IntVar,
         and objective and constraints are linear
 
-        :return: flag stating if the model is Linear Integer Program
+        :return: flag stating if the model is ILP
         """
         if not all(isinstance(v, (BitVar, IntVar)) for v in self.variables.values()):
             return False
@@ -289,12 +289,12 @@ class SympyOpt(ModelAbs):
         return True
 
     def is_qip(self) -> bool:
-        """Check if model is Quadratic Integer Program.
+        """Check if model is Quadratic Integer Program (QIP)
 
-        Model is Quadratic Integer Program if all variables are BitVar or
-        IntVar,  objective is quadratic polynomial, and constraints are linear.
+        Model is QIP if all variables are BitVar or IntVar,  objective is
+        quadratic polynomial, and constraints are linear.
 
-        :return: flag stating if the model is Quadratic Integer Program
+        :return: flag stating if the model is QIP
         """
         if not all(isinstance(v, (BitVar, IntVar)) for v in self.variables.values()):
             return False
@@ -310,12 +310,12 @@ class SympyOpt(ModelAbs):
         raise NotImplementedError()
 
     def is_pip(self) -> bool:
-        """Check if model is Polynomial Integer Program.
+        """Check if model is Polynomial Integer Program (PIP)
 
-        Model is Polynomial Integer Program if all variables are BitVar or
-        IntVar, objective and constraints are polynomials.
+        Model is PIP if all variables are BitVar or IntVar, objective and
+        constraints are polynomials.
 
-        :return: flag stating if the model is Polynomial Integer Program
+        :return: flag stating if the model is PIP
         """
         if not all(isinstance(v, (BitVar, IntVar)) for v in self.variables.values()):
             return False
@@ -326,14 +326,12 @@ class SympyOpt(ModelAbs):
         return True
 
     def is_qcqp(self) -> bool:
-        """Check if model is Quadratically Constrained Quadratic Program.
+        """Check if model is Quadratically Constrained Quadratic Program (QCQP)
 
-        Model is Quadratically Constrained Quadratic Program if all variables
-        are BitVar or IntVar, objective and constraints are quadratic
-        polynomials.
+        Model is QCQP if all variables are BitVar or IntVar, objective and
+        constraints are quadratic polynomials.
 
-        :return: flag stating if the model is Quadratically Constrained
-            Quadratic Program
+        :return: flag stating if the model is QCQP
         """
         if not all(isinstance(v, (BitVar, IntVar)) for v in self.variables.values()):
             return False
@@ -347,24 +345,22 @@ class SympyOpt(ModelAbs):
         return True
 
     def is_bm(self) -> bool:
-        """Check if model is Binary Model.
+        """Check if model is Binary Model (BM)
 
-        Model is Binary Model if all variables are BitVar or SpinVar.
+        Model is BM if all variables are BitVar or SpinVar.
 
-        :return: flag stating if the model is Binary Model
+        :return: flag stating if the model is BM
         """
         vars = self.variables.values()
         return all(isinstance(v, (BitVar, SpinVar)) for v in vars)
 
     def is_qubo(self) -> bool:
-        """Check if model is Quadratic Unconstrained Binary Optimization.
+        """Check if model is Quadratic Unconstrained Binary Optimization (QUBO)
 
-        Model is Quadratic Unconstrained Binary Optimization if all variables
-        are BitVar, objective function is quadratic polynomial and there are no
-        constraints.
+        Model is QUBO if all variables are BitVar, objective function is
+        quadratic polynomial and there are no constraints.
 
-        :return: flag stating if the model is Quadratic Unconstrained Binary
-            Optimization
+        :return: flag stating if the model is QUBO
         """
         if len(self.list_constraints()) > 0:
             return False
@@ -376,14 +372,13 @@ class SympyOpt(ModelAbs):
         return total_degree(objective_copy) <= 2
 
     def is_ising(self, locality: int = None) -> bool:
-        """Check if model is an Ising Model.
+        """Check if model is an Ising Model
 
-        Model is Ising model if all variables are SpinVar, objective function is
-        a polynomial of at most locality order and there are no constraints.
+        Model is Ising model if all variables are SpinVar, objective function
+        is a polynomial of at most locality order and there are no constraints.
 
         :param locality: maximal locality, defaults to 2
-        :return: flag stating if the model is Quadratic Unconstrained Binary
-            Optimization
+        :return: flag stating if the model is Ising mode with given locality
         """
 
         if locality is None:
@@ -399,12 +394,12 @@ class SympyOpt(ModelAbs):
         return total_degree(objective_copy) <= locality
 
     def is_hobo(self) -> bool:
-        """Check if model is Higher Order Binary Optimization.
+        """Check if model is Higher Order Binary Optimization (HOBO)
 
-        Model is Higher Order Binary Optimization if all variables are BitVar,
-        objective function is a polynomial and there are no constraints.
+        Model is HOBO if all variables are BitVar, objective function is a
+        polynomial and there are no constraints.
 
-        :return: flag stating if the model is Higher Order Binary Optimization
+        :return: flag stating if the model is HOBO
         """
         if len(self.list_constraints()) > 0:
             return False

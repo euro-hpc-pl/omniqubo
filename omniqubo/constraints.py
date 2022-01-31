@@ -13,7 +13,7 @@ class ConstraintAbs(ABC):
 
     @abstractmethod
     def is_eq_constraint(self) -> bool:
-        """Check if the constraint is an equality.
+        """Check if the constraint is an equality
 
         Needs to be implemented
         :return: the flag which states if constraints is an equality
@@ -22,7 +22,7 @@ class ConstraintAbs(ABC):
 
     @abstractmethod
     def is_ineq_constraint(self) -> bool:
-        """Check if the constraint is an inequality.
+        """Check if the constraint is an inequality
 
         Needs to be implemented
         :return: the flag which states if constraints is an inequality

@@ -6,7 +6,7 @@ from .utils import INTER_STR_SEP
 
 
 class VarReplace(ConverterAbs):
-    """Replaces the variable with some formula.
+    """Replaces the variable with some formula
 
     Transform all occurrences of the variable varname in the model with the
     binary formula, and add extra constraint if required. This is an abstract
@@ -28,7 +28,7 @@ class VarReplace(ConverterAbs):
 
 
 class VarOneHot(VarReplace):
-    """Replace integer variables with one-hot encoding.
+    """Replace integer variables with one-hot encoding
 
     Replaces integer variables with one-hot encoding, and add constraint that
     sum of new added bits is equal to one. For variable lb <= y <= ub
@@ -69,7 +69,7 @@ def interpret_varonehot(samples: DataFrame, converter: VarOneHot) -> DataFrame:
 
 
 class TrivialIntToBit(VarReplace):
-    """Replace integer with binary variable.
+    """Replace integer with binary variable
 
     Replaces integer variables y with binary variable lb + b, where
     lb <= y <= lb+1 is assumed. lb should be finite integer number. If is_regexp
@@ -96,7 +96,7 @@ def interpret_trivialinttobit(samples: DataFrame, converter: TrivialIntToBit) ->
 
 
 class BitToSpin(VarReplace):
-    """Replace binary variable with spin variable.
+    """Replace binary variable with spin variable
 
     Replaces binary variable b with spin variable s. The formula is (1-s)/2
     if reversed is set to False, or (1+s)/2 otherwise. If is_regexp is set to

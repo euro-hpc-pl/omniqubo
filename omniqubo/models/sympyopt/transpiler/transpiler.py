@@ -8,7 +8,7 @@ from .docplex_to_sympyopt import DocplexToSympyopt
 
 
 def transpile(model: Union[SympyOpt, Model]) -> SympyOpt:
-    """Transpile optimization problem into SympyOpt model.
+    """Transpile optimization problem into SympyOpt model
 
     Only accepts SympyOpt or Docplex model.
 

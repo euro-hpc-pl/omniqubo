@@ -1,8 +1,11 @@
 BinaryQuadraticModel
+ILP
 Ising
+QIP
 backend
 bool
 bqm
+convstep
 dimod
 docplex
 encodings

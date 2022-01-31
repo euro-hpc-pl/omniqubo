@@ -20,7 +20,7 @@ class ConstraintSympyopt(ConstraintAbs):
 
 
 class ConstraintEq(ConstraintSympyopt):
-    """Equality constraint for SympyOpt.
+    """Equality constraint for SympyOpt
 
     Constraint of the form exprleft == exprright.
 
@@ -38,14 +38,14 @@ class ConstraintEq(ConstraintSympyopt):
         self.exprright = deepcopy(exprright)
 
     def is_eq_constraint(self) -> bool:
-        """Check if the constraint is an equality.
+        """Check if the constraint is an equality
 
         :return: True
         """
         return True
 
     def is_ineq_constraint(self) -> bool:
-        """Check if the constraint is an inequality.
+        """Check if the constraint is an inequality
 
         :return: False
         """
@@ -91,7 +91,7 @@ INEQ_GEQ_SENSE = "geq"
 
 
 class ConstraintIneq(ConstraintSympyopt):
-    """Inequality constraint for SympyOpt.
+    """Inequality constraint for SympyOpt
 
     Constraint of the form exprleft <= exprright for sense equal to
     INEQ_LEQ_SENSE or exprleft >= exprright for sense equal to INEQ_GEQ_SENSE.
@@ -116,14 +116,14 @@ class ConstraintIneq(ConstraintSympyopt):
         self.sense = sense
 
     def is_eq_constraint(self) -> bool:
-        """Check if the constraint is an equality.
+        """Check if the constraint is an equality
 
         :return: False
         """
         return False
 
     def is_ineq_constraint(self) -> bool:
-        """Check if the constraint is an inequality.
+        """Check if the constraint is an inequality
 
         :return: True
         """

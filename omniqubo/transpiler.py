@@ -24,7 +24,7 @@ class TransiplerAbs(ABC):
 
     @abstractmethod
     def can_transpile(self, model) -> bool:
-        """Check if model can be transpiled.
+        """Check if model can be transpiled
 
         :type model: model to be transpiled
         :return: flag denoting if model can be transpiled

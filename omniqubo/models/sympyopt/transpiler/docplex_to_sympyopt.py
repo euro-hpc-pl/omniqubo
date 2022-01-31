@@ -13,7 +13,7 @@ from ..sympyopt import SympyOpt
 
 
 class DocplexToSympyopt(TransiplerAbs):
-    """Transpiler for transforming Docplex model into SymptOpt model.
+    """Transpiler for transforming Docplex model into SymptOpt model
 
     Transpiler can transform any quadratic program with quadratic constraints,
     which has bit, integer, or real variables only.
@@ -88,7 +88,7 @@ class DocplexToSympyopt(TransiplerAbs):
                 raise ValueError(f"Unknown cplex_typecode {var.cplex_typecode}")  # pragma: no cover
 
     def transpile(self, model: Model) -> SympyOpt:
-        """Transpile model into SympyOpt model.
+        """Transpile model into SympyOpt model
 
         :param model: model to be transpiled
         :return: equivalent SympyOpt model
@@ -100,7 +100,7 @@ class DocplexToSympyopt(TransiplerAbs):
         return sympy_model
 
     def can_transpile(self, model: Model) -> bool:
-        """Check if model can be transpiled.
+        """Check if model can be transpiled
 
         Currently equivalent to the fact that all variables are bits, integers,
         or real.

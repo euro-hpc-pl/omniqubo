@@ -6,7 +6,7 @@ from .converter import ConverterAbs, interpret
 
 
 class MakeMin(ConverterAbs):
-    """Converter for making the optimization model a minimization problem.
+    """Converter for making the optimization model a minimization problem
 
     If the optimization model is a minimization problem, does not do
     anything, otherwise changes objective function f(x) into -f(x).
@@ -22,7 +22,7 @@ def interpret_makemin(samples: DataFrame, converter: MakeMin) -> DataFrame:
 
 
 class MakeMax(ConverterAbs):
-    """Converter for making the optimization model a maximization problem.
+    """Converter for making the optimization model a maximization problem
 
     If the optimization model is a maximization problem, does not do
     anything, otherwise changes objective function f(x) into -f(x).
@@ -38,7 +38,7 @@ def interpret_makemax(samples: DataFrame, converter: MakeMax) -> DataFrame:
 
 
 class RemoveConstraint(ConverterAbs):
-    """Removes the given constraint.
+    """Removes the given constraint
 
     Removes the constraint of given name if exists. Otherwise do not do
     anything to the model. If check_constraint is set to False, the interpreted
