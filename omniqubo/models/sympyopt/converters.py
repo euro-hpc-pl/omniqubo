@@ -1,7 +1,8 @@
 import re
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Union
 
-from sympy import Expr, Symbol
+from pandas import DataFrame
+from sympy import Expr, Symbol, lambdify
 from sympy.core.evalf import INF
 
 from omniqubo.converters.converter import can_convert, convert
@@ -9,12 +10,24 @@ from omniqubo.converters.eq_to_objective import EqToObj
 from omniqubo.converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
 from omniqubo.converters.utils import INTER_STR_SEP
 from omniqubo.converters.varreplace import BitToSpin, TrivialIntToBit, VarOneHot, VarReplace
-from omniqubo.models.sympyopt.constraints import ConstraintEq, ConstraintIneq
+from omniqubo.models.sympyopt.constraints import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq
 from omniqubo.models.sympyopt.vars import BitVar, IntVar
 
 from .sympyopt import MAX_SENSE, MIN_SENSE, SympyOpt
 
 # EqToObj
+
+# https://stackoverflow.com/questions/64475745/how-to-express-dataframe-operations-using-symbols
+# also used for RemoveConstraint
+
+
+def _eq_to_verifier(c: Union[ConstraintEq, ConstraintIneq]):
+    def verifier(df: DataFrame):
+        expr = c.exprleft - c.exprright
+        callable_obj = lambdify(list(expr.free_symbols), expr)
+        return callable_obj(**{str(a): df[str(a)] for a in expr.atoms() if isinstance(a, Symbol)})
+
+    return verifier
 
 
 @convert.register
@@ -31,14 +44,15 @@ def convert_sympyopt_eqtoobj(model: SympyOpt, converter: EqToObj):
         assert isinstance(model.constraints[converter.name], ConstraintEq)
         constr_names.append(converter.name)
 
+    converter.data["verifiers"] = []
     for cname in constr_names:
-        c = model.constraints[cname]
+        c = model.constraints.pop(cname)
         assert isinstance(c, ConstraintEq)
         if model.sense == MIN_SENSE:
             model.objective += converter.penalty * (c.exprleft - c.exprright) ** 2
         else:
             model.objective -= converter.penalty * (c.exprleft - c.exprright) ** 2
-        model.constraints.pop(cname)
+        converter.data["verifiers"].append(_eq_to_verifier(c))
     return model
 
 
@@ -91,18 +105,29 @@ def can_convert_sympyopt_makemin(model: SympyOpt, converter: MakeMin) -> bool:
 def convert_sympyopt_removeconstraint(model: SympyOpt, converter: RemoveConstraint) -> SympyOpt:
     assert can_convert(model, converter)
     # TODO implement condition functions to data for interpret
+    converter.data["verifiers"] = []
 
+    to_be_removed: List[str] = []
     if converter.is_regexp:
         _rex = re.compile(converter.name)
         to_be_removed = []
         for cname in model.constraints:
             if _rex.fullmatch(cname):
                 to_be_removed.append(cname)
-        for cname in to_be_removed:
-            model.constraints.pop(cname)
     else:
-        model.constraints.pop(converter.name)
+        to_be_removed.append(converter.name)
 
+    for cname in to_be_removed:
+        c = model.constraints.pop(cname)
+
+        if converter.check_constraint:
+            if isinstance(c, ConstraintEq):
+                ctype = "eq"
+            else:
+                assert isinstance(c, ConstraintIneq)
+                ctype = "geq" if c.sense == INEQ_GEQ_SENSE else "leq"
+            assert isinstance(c, (ConstraintEq, ConstraintIneq))
+            converter.data["verifiers"].append((_eq_to_verifier(c), ctype))
     return model
 
 
@@ -270,7 +295,6 @@ def convert_sympyopt_bittospin(model: SympyOpt, converter: BitToSpin) -> SympyOp
     for vname in var_to_replace:
         var = model.variables[vname].var
         rule_dict[var] = _get_expr_bittospin(model, converter, vname)
-    print(rule_dict)
     _sub_expression(model, rule_dict)
 
     converter.data["varnames"] = set(var_to_replace)

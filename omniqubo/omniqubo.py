@@ -63,6 +63,11 @@ class Omniqubo:
         Variables created during the conversion process will be removed, and
         only those present in the original model will be left at the end.
 
+        .. notes:
+            "feasible" set to True does not mean that the sample is feasible
+            according to the original model. On the other hand False means that
+            samples are not feasible.
+
         :param samples: samples to be interpreted
         :return: interpreted samples with "feasible" flag
         """

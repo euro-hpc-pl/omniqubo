@@ -1,12 +1,14 @@
 from copy import deepcopy
 
 import pytest
+from dimod import ExactSolver
 from docplex.mp.model import Model
 from sympy import sin
 
 from omniqubo import Omniqubo
 from omniqubo.models.sympyopt.constraints import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq
 from omniqubo.models.sympyopt.sympyopt import SympyOpt
+from omniqubo.sampleset import dimod_import
 
 
 class TestOmniquboInit:
@@ -116,6 +118,35 @@ class TestOmniqubo:
         omniqubo.rm_constraints(names=".*")
         assert len(omniqubo.model.constraints.keys()) == 0
         assert omniqubo.model.objective != 0
+
+    def test_docplex_rm_test_interpret(self):
+        mdl = Model("ILP")
+        x = mdl.binary_var(name="x")
+        y = mdl.binary_var("y")
+        z = mdl.binary_var(name="z")
+        mdl.minimize((x + y) ** 2 - 2 * z + 3)
+        mdl.add_constraint(x == 1, ctname="c1")
+
+        omniqubo = Omniqubo(mdl)
+        omniqubo.rm_constraints(".*")
+
+        Q, offset = omniqubo.export("bqm").to_qubo()
+        df = ExactSolver().sample_qubo(Q)
+        samples = omniqubo.interpret(dimod_import(df))
+        assert samples.shape[0] == 2 ** 3
+
+        samples = samples.loc[samples["feasible"]]
+        assert samples.shape[0] == 2 ** 3
+
+        omniqubo = Omniqubo(mdl)
+        omniqubo.rm_constraints(".*", check_constraints=True)
+
+        Q, offset = omniqubo.export("bqm").to_qubo()
+        df = ExactSolver().sample_qubo(Q)
+        samples = omniqubo.interpret(dimod_import(df))
+        assert samples.shape[0] == 2 ** 3
+        samples = samples.loc[samples["feasible"]]
+        assert samples.shape[0] == 2 ** 2
 
     def test_name_eq_to_obj(self):
         sympyopt = SympyOpt()

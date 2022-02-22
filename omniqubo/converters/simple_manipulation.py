@@ -1,5 +1,3 @@
-from warnings import warn
-
 from pandas import DataFrame
 
 from .converter import ConverterAbs, interpret
@@ -60,5 +58,13 @@ class RemoveConstraint(ConverterAbs):
 
 @interpret.register
 def interpret_removeconstraint(samples: DataFrame, converter: RemoveConstraint) -> DataFrame:
-    warn("Feasibility is not checked yet for RemoveConstraint")
+    for verifier, ctype in converter.data["verifiers"]:
+        if ctype == "eq":
+            samples["feasible"] &= verifier(samples) == 0
+        elif ctype == "geq":
+            samples["feasible"] &= verifier(samples) >= 0
+        elif ctype == "leq":
+            samples["feasible"] &= verifier(samples) <= 0
+        else:
+            ValueError(f"Uknonwn Constraint type {ctype}")  # pragma: no cover
     return samples

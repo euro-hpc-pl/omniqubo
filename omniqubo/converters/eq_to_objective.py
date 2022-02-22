@@ -34,5 +34,6 @@ class EqToObj(ConverterAbs):
 
 @interpret.register
 def interpret_eqtoobj(samples: DataFrame, converter: EqToObj) -> DataFrame:
-    warn("EqToObj is not analysing feasibility")
+    for verifier in converter.data["verifiers"]:
+        samples["feasible"] &= verifier(samples) == 0
     return samples

@@ -54,7 +54,6 @@ class SympyOptToDimod(TransiplerAbs):
             vartype = dimod.BINARY
         else:
             var = next(iter(model.variables.values()))
-            print(var)
             if isinstance(var, BitVar):
                 vartype = dimod.BINARY
             else:

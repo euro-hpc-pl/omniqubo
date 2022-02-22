@@ -1,1 +1,1 @@
-INTER_STR_SEP = "_@@_"
+INTER_STR_SEP = "___"

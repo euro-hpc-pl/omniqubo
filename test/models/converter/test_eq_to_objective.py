@@ -1,3 +1,7 @@
+import warnings
+
+import pytest
+
 from omniqubo.converters.eq_to_objective import EqToObj
 from omniqubo.models.sympyopt.constraints import ConstraintEq
 from omniqubo.models.sympyopt.converters import convert
@@ -5,6 +9,13 @@ from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
 
 class TestEqToObj:
+    def test_zero_penalty_warning(self):
+        with pytest.warns(Warning):
+            EqToObj(".*", True, 0.0)
+
+        with warnings.catch_warnings():
+            EqToObj(".*", True, 1.0)
+
     def test_linear_min(self):
         sympyopt = SympyOpt()
         x = sympyopt.int_var(name="x", lb=0, ub=2)

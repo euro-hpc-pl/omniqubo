@@ -34,7 +34,7 @@ class TestUseCases:
         # some samples analysis and tests
         assert samples.shape[0] == 2 * (2 ** 5) * (2 ** 5)
         samples = samples.loc[samples["feasible"]]
-        assert samples.shape[0] == 2 * 5 * 5
+        assert samples.shape[0] == 10
 
         # existance of this column "energy" may depend on the solver outcome
         samples = samples.sort_values("energy")
@@ -67,7 +67,7 @@ class TestUseCases:
         assert samples.shape[0] == 2 * (2 ** 5) * (2 ** 5)
 
         samples = samples.loc[samples["feasible"]]
-        assert samples.shape[0] == 2 * 5 * 5
+        assert samples.shape[0] == 10
 
         samples = samples.sort_values("energy")
         best_sample = samples.iloc[0, :]
