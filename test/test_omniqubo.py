@@ -31,6 +31,20 @@ class TestOmniquboInit:
         with pytest.raises(ValueError):
             Omniqubo(1)
 
+    def test_logs(self):
+        mdl = Model(name="tsp")
+        x = mdl.binary_var("x")
+        y = mdl.integer_var(lb=-2, ub=10, name="y")
+        mdl.minimize((2 * x - 3 * y + 2) ** 2)
+
+        omniqubo = Omniqubo(mdl, verbatim_logs=False)
+        assert len(omniqubo.model_logs) == 0
+
+        omniqubo = Omniqubo(mdl, verbatim_logs=True)
+        assert len(omniqubo.model_logs) == 1
+        omniqubo.int_to_bits(".*", "one-hot", trivial_conv=False)
+        assert len(omniqubo.model_logs) == 2
+
 
 class TestOmniqubo:
     def test_name_int_to_bits(self):

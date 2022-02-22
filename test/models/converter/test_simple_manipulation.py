@@ -1,12 +1,16 @@
 from copy import deepcopy
 
+import numpy as np
+from pandas import DataFrame
+
+from omniqubo.converters.converter import interpret
 from omniqubo.converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
 from omniqubo.models.sympyopt.constraints import ConstraintEq
 from omniqubo.models.sympyopt.converters import convert
 from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
 
-class TestOneHot:
+class TestSimpleManipulation:
     def test_objective_minmax(self):
         sympyopt = SympyOpt()
         x = sympyopt.int_var(name="x", lb=0, ub=2)
@@ -31,6 +35,15 @@ class TestOneHot:
         assert sympyopt == sympyopt_copy
         sympyopt = convert(sympyopt, conv)
         assert sympyopt == sympyopt_copy
+
+    def test_makeminmax_interpret(self):
+        # makemin/makemax should not change anything thus it can be tested on
+        # random dataframes
+        df = DataFrame(np.random.randint(0, 100, size=(10, 4)), columns=list("ABCD"))
+        df_new = interpret(df, MakeMax())
+        assert df.equals(df_new)
+        df_new = interpret(df, MakeMin())
+        assert df.equals(df_new)
 
     def test_remove_constraint(self):
         sympyopt = SympyOpt()

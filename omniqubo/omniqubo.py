@@ -32,7 +32,7 @@ class Omniqubo:
         if model_backend is None or model_backend == "sympyopt":
             self.model = transpile(self.orig_model)  # type: ModelAbs
         else:
-            raise ValueError(f"Unknown backend {model_backend}")
+            raise ValueError(f"Unknown backend {model_backend}")  # pragma: no cover
         self.logs = []  # type: List[ConverterAbs]
         self.model_logs = []  # type: List[ModelAbs]
         self.verbatim_logs = verbatim_logs
@@ -115,7 +115,7 @@ class Omniqubo:
             if isinstance(self.model, SympyOpt):  # HACK
                 return SympyOptToDimod().transpile(self.model)
         else:
-            raise ValueError(f"Unknown mode {mode}")
+            raise ValueError(f"Unknown mode {mode}")  # pragma: no cover
 
     def make_max(self) -> ModelAbs:
         """Transform the model into maximization problem
