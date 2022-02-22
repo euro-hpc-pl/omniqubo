@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict
-from warnings import warn
 
 from multimethod import multimethod
 from pandas import DataFrame
@@ -40,8 +39,7 @@ def convert(model: ModelAbs, converter: ConverterAbs):
 
 
 @multimethod
-def can_convert(samples: ModelAbs, converter: ConverterAbs) -> bool:
-    warn(f"can_check not implemented for {type(converter)}, defaults to True", Warning)
+def can_convert(model: ModelAbs, converter: ConverterAbs) -> bool:
     return True
 
 

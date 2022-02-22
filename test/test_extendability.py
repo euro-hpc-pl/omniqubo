@@ -1,9 +1,10 @@
 from copy import deepcopy
 
 import pytest
+from pandas import DataFrame
 
 from omniqubo import Omniqubo
-from omniqubo.converters.converter import ConverterAbs, can_convert, convert
+from omniqubo.converters.converter import ConverterAbs, can_convert, convert, interpret
 from omniqubo.models.sympyopt.constraints import ConstraintEq, ConstraintIneq
 from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
@@ -22,7 +23,7 @@ class TestNewConvert:
             return model
 
         @can_convert.register
-        def can_convert_mul_by(model: SympyOpt, converter) -> bool:
+        def can_convert_mul_by(model: SympyOpt, converter: MultiplyBy) -> bool:
             return converter.val > 0
 
         sympyopt = SympyOpt()
@@ -45,3 +46,23 @@ class TestNewConvert:
         conv = MultiplyBy(-1)
         with pytest.raises(AssertionError):
             omni.convert(conv)
+
+    def test_missing_functions(self):
+        class MultiplyObjBy(ConverterAbs):
+            def __init__(self, val: float) -> None:
+                super().__init__()
+                self.val = val
+
+        sympyopt = SympyOpt()
+        x = sympyopt.bit_var(name="x")
+        sympyopt.minimize(x)
+        conv = MultiplyObjBy(-2)
+        samples = DataFrame()
+
+        with pytest.raises(NotImplementedError):
+            convert(sympyopt, conv)
+
+        with pytest.raises(NotImplementedError):
+            interpret(samples, conv)
+
+        assert can_convert(sympyopt, conv)
