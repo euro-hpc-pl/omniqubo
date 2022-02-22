@@ -132,7 +132,7 @@ def _matching_varnames(model: SympyOpt, converter: VarReplace, filtering_fun: Ca
             if _rex.fullmatch(varname) and filtering_fun(varname):
                 var_to_replace.append(varname)
     else:
-        assert isinstance(model.variables[converter.varname], IntVar)
+        assert filtering_fun(converter.varname)
         var_to_replace.append(converter.varname)
     return var_to_replace
 
@@ -164,7 +164,7 @@ def _can_convert_onehot_sing(model: SympyOpt, name: str) -> bool:
 def convert_sympyopt_varonehot(model: SympyOpt, converter: VarOneHot) -> SympyOpt:
     assert can_convert(model, converter)
 
-    def filtering_fun(vname):
+    def filtering_fun(vname: str):
         return _can_convert_onehot_sing(model, vname)
 
     var_to_replace = _matching_varnames(model, converter, filtering_fun)
@@ -192,31 +192,40 @@ def can_convert_sympyopt_varonehot(model: SympyOpt, converter: VarOneHot) -> boo
     return _can_convert_onehot_sing(model, converter.varname)
 
 
+# TrivialIntToBit:
+
+
 def _can_convert_trivitb_sing(model: SympyOpt, name: str) -> bool:
     var = model.variables[name]
     return isinstance(var, IntVar) and var.ub - var.lb == 1
 
 
-# TrivialIntToBit:
 @convert.register
 def convert_sympyopt_trivialinttobit(model: SympyOpt, converter: TrivialIntToBit) -> SympyOpt:
     assert can_convert(model, converter)
+    if converter.is_regexp:
 
-    def filtering_fun(vname):
-        return _can_convert_trivitb_sing(model, vname)
+        def filtering_fun(vname: str):
+            return _can_convert_trivitb_sing(model, vname)
+
+    else:
+
+        def filtering_fun(vname: str):
+            return True
 
     var_to_replace = _matching_varnames(model, converter, filtering_fun)
-    if converter.optional and not converter.is_regexp:
+    # if not converter.is_regexp, check if we can implement it and do nothing if
+    # you cannot
+    if not converter.is_regexp:
         if not _can_convert_trivitb_sing(model, var_to_replace[0]):
-            # do nothing
             return model
 
     rule_dict = dict()
     for vname in var_to_replace:
         var = model.variables[vname]
-        assert isinstance(var, IntVar)
-        bit_var = model.bit_var(f"{converter.varname}{INTER_STR_SEP}itb")
-        rule_dict[var] = var.lb + bit_var
+        assert isinstance(var, IntVar)  # for mypy
+        bit_var = model.bit_var(f"{vname}{INTER_STR_SEP}itb")
+        rule_dict[var.var] = var.lb + bit_var
 
     _sub_expression(model, rule_dict)
 
@@ -230,20 +239,18 @@ def convert_sympyopt_trivialinttobit(model: SympyOpt, converter: TrivialIntToBit
 
 @can_convert.register
 def can_convert_sympyopt_trivialinttobit(model: SympyOpt, converter: TrivialIntToBit) -> bool:
-    if converter.is_regexp or converter.optional:
-        return True
-    return _can_convert_trivitb_sing(model, converter.varname)
+    return True  # always can convert, even if does nothing
 
 
 #  BitToSpin
 
 
-def _get_expr_add_constr_bittospin(model: SympyOpt, converter: BitToSpin) -> Expr:
-    var = model.spin_var(f"{converter.varname}{INTER_STR_SEP}bts")
+def _get_expr_bittospin(model: SympyOpt, converter: BitToSpin, varname: str) -> Expr:
+    var = model.spin_var(f"{varname}{INTER_STR_SEP}bts")
     if converter.reversed:
-        return (1 - var) / 2
+        return 1 - 2 * var
     else:
-        return (1 + var) / 2
+        return 1 + 2 * var
 
 
 def _can_convert_bittospin_sing(model: SympyOpt, name: str) -> bool:
@@ -254,24 +261,26 @@ def _can_convert_bittospin_sing(model: SympyOpt, name: str) -> bool:
 def convert_sympyopt_bittospin(model: SympyOpt, converter: BitToSpin) -> SympyOpt:
     assert can_convert(model, converter)
 
-    def filtering_fun(vname):
+    def filtering_fun(vname: str):
         return _can_convert_bittospin_sing(model, vname)
 
     var_to_replace = _matching_varnames(model, converter, filtering_fun)
 
     rule_dict = dict()
     for vname in var_to_replace:
-        var = model.variables[vname]
-        rule_dict[var] = _get_expr_add_constr_bittospin(model, converter)
-
+        var = model.variables[vname].var
+        rule_dict[var] = _get_expr_bittospin(model, converter, vname)
+    print(rule_dict)
     _sub_expression(model, rule_dict)
 
+    converter.data["varnames"] = set(var_to_replace)
     for vname in var_to_replace:
-        var = model.variables.pop(vname)
+        model.variables.pop(vname)
+
     return model
 
 
-@convert.register
+@can_convert.register
 def can_convert_sympyopt_bittospin(model: SympyOpt, converter: BitToSpin) -> bool:
     if converter.is_regexp:
         return True

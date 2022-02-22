@@ -3,6 +3,7 @@ from typing import Dict
 import dimod
 from sympy import Expr, core
 
+from omniqubo.models.sympyopt.vars import BitVar
 from omniqubo.transpiler import TransiplerAbs
 
 from ..sympyopt import MIN_SENSE, SympyOpt
@@ -49,7 +50,15 @@ class SympyOptToDimod(TransiplerAbs):
         assert self.can_transpile(model)
         obj = model.objective
         obj = model._bitspin_simp(obj)
-        vartype = dimod.BINARY
+        if len(model.variables) == 0:
+            vartype = dimod.BINARY
+        else:
+            var = next(iter(model.variables.values()))
+            print(var)
+            if isinstance(var, BitVar):
+                vartype = dimod.BINARY
+            else:
+                vartype = dimod.SPIN
         linear = {}  # type: Dict
         quadratic = {}  # type: Dict
         offset = 0.0
@@ -70,4 +79,4 @@ class SympyOptToDimod(TransiplerAbs):
         :param model: checked model
         :return: flag denoting if model can be transpiled
         """
-        return model.is_qubo() and model.sense == MIN_SENSE
+        return (model.is_qubo() or model.is_ising(locality=2)) and model.sense == MIN_SENSE

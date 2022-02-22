@@ -201,8 +201,8 @@ class Omniqubo:
         :raises ValueError: if mode value is not known
         :return: updated model
         """
-        if trivial_conv and not is_regexp:
-            self.convert(TrivialIntToBit(names, is_regexp, optional=True))
+        if trivial_conv:
+            self.convert(TrivialIntToBit(names, is_regexp))
 
         if mode == "one-hot":
             self.convert(VarOneHot(names, is_regexp))

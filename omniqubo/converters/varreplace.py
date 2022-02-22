@@ -46,24 +46,23 @@ class VarOneHot(VarReplace):
 
 @interpret.register
 def interpret_varonehot(samples: DataFrame, converter: VarOneHot) -> DataFrame:
-    name = converter.varname
-    lb = converter.data["lb"]
-    ub = converter.data["ub"]
+    for name in converter.data["bounds"].keys():
+        lb, ub = converter.data["bounds"][name]
 
-    names = [f"{name}{INTER_STR_SEP}OH_{i}" for i in range(ub - lb + 1)]
-    samples["feasible_tmp"] = samples.apply(lambda row: sum(row[n] for n in names) == 1, axis=1)
+        names = [f"{name}{INTER_STR_SEP}OH_{i}" for i in range(ub - lb + 1)]
+        samples["feasible_tmp"] = samples.apply(lambda row: sum(row[n] for n in names) == 1, axis=1)
 
-    def set_var_value(row):
-        return lb + [row[n] for n in names].index(1) if row["feasible_tmp"] else np.nan
+        def set_var_value(row):
+            return lb + [row[n] for n in names].index(1) if row["feasible_tmp"] else np.nan
 
-    samples[name] = samples.apply(
-        set_var_value,
-        axis=1,
-    )
+        samples[name] = samples.apply(
+            set_var_value,
+            axis=1,
+        )
 
-    samples["feasible"] &= samples.pop("feasible_tmp")
-    for n in names:
-        samples.pop(n)
+        samples["feasible"] &= samples.pop("feasible_tmp")
+        for n in names:
+            samples.pop(n)
 
     return samples
 
@@ -78,20 +77,20 @@ class TrivialIntToBit(VarReplace):
 
     :param varname: the replaced integer variable
     :param is_regexp: flag deciding if varname is regular expression
-    :param optional: if set to True, the converts only if possible
+    :param optional: if set to True, the converts only integer variables with
+        appropriate bounds
     """
 
-    def __init__(self, varname: str, is_regexp: bool, optional: bool) -> None:
+    def __init__(self, varname: str, is_regexp: bool) -> None:
         super().__init__(varname, is_regexp)
-        self.optional = optional
 
 
 @interpret.register
 def interpret_trivialinttobit(samples: DataFrame, converter: TrivialIntToBit) -> DataFrame:
-    name_orig = converter.varname
-    name_new = f"{name_orig}{INTER_STR_SEP}itb"
-    samples.rename(columns={name_new: name_orig})
-    samples[name_orig] = samples[name_orig] + converter.data["lb"]
+    for name, lb in converter.data["lb"].items():
+        name_new = f"{name}{INTER_STR_SEP}itb"
+        samples.rename(columns={name_new: name})
+        samples[name] = samples.pop(name_new) + lb
     return samples
 
 
@@ -114,4 +113,11 @@ class BitToSpin(VarReplace):
 
 @interpret.register
 def interpret_bittospin(samples: DataFrame, converter: BitToSpin) -> DataFrame:
-    raise NotImplementedError()
+    for name in converter.data["varnames"]:
+        name_new = f"{name}{INTER_STR_SEP}bts"
+        samples.rename(columns={name_new: name})
+        if converter.reversed:
+            samples[name] = (1 - samples.pop(name_new)) / 2
+        else:
+            samples[name] = (1 + samples.pop(name_new)) / 2
+    return samples

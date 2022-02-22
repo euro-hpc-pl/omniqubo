@@ -12,4 +12,5 @@ def dimod_import(data: SampleSet) -> DataFrame:
     :return: the same optimization samples in DataFrame
     """
     df = data.to_pandas_dataframe()
+    df["feasible"] = True
     return df
