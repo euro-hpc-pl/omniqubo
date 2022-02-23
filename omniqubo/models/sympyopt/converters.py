@@ -1,12 +1,14 @@
 import re
+from math import ceil, prod
 from typing import Callable, Dict, List, Union
 
 from pandas import DataFrame
-from sympy import Expr, Symbol, lambdify
+from sympy import Add, Expr, Integer, Mul, Number, Pow, Symbol, expand, lambdify
 from sympy.core.evalf import INF
 
 from omniqubo.converters.converter import can_convert, convert
 from omniqubo.converters.eq_to_objective import EqToObj
+from omniqubo.converters.ineq_to_eq import IneqToEq
 from omniqubo.converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
 from omniqubo.converters.utils import INTER_STR_SEP
 from omniqubo.converters.varreplace import (
@@ -24,11 +26,10 @@ from .sympyopt import MAX_SENSE, MIN_SENSE, SympyOpt
 
 # EqToObj
 
-# https://stackoverflow.com/questions/64475745/how-to-express-dataframe-operations-using-symbols
-# also used for RemoveConstraint
-
 
 def _eq_to_verifier(c: Union[ConstraintEq, ConstraintIneq]):
+    # https://stackoverflow.com/questions/64475745/how-to-express-dataframe-operations-using-symbols
+    # also used for RemoveConstraint
     def verifier(df: DataFrame):
         expr = c.exprleft - c.exprright
         callable_obj = lambdify(list(expr.free_symbols), expr)
@@ -68,7 +69,165 @@ def can_convert_sympyopt_eqtoobj(model: SympyOpt, converter: EqToObj) -> bool:
     if converter.is_regexp:
         return True
     name = converter.name
-    return name in model.constraints and type(model.constraints[name]) is ConstraintEq
+    if name not in model.constraints:
+        return False
+    return isinstance(model.constraints[name], ConstraintEq)
+
+
+# IneqToEq
+
+# it assumes that list1 is element-wise smaller than list2 of the same size
+def _get_min_product(lbs: List[float], ubs: List[float]) -> float:
+    switchers_number = sum(lb * ub < 0 for lb, ub in zip(lbs, ubs))
+    if switchers_number == 0:
+        # sign will be always the same irrespectively of chosen lb or ub
+        neg_no = sum(lb < 0 for lb in lbs)
+        if neg_no % 2 == 0:
+            return prod(min(abs(lb), abs(ub)) for lb, ub in zip(lbs, ubs))
+        else:
+            return -prod(max(abs(lb), abs(ub)) for lb, ub in zip(lbs, ubs))
+    else:
+        # here we can always choose lb or ub to be negative
+        result = prod(ub if abs(lb) < abs(ub) else lb for lb, ub in zip(lbs, ubs))
+        if result < 0:
+            return result
+        # we need to switch one variable
+        values = []
+        for lb, ub in zip(lbs, ubs):
+            chosen, not_chosen = (ub, lb) if abs(lb) < abs(ub) else (lb, ub)
+            values.append(result * not_chosen / chosen)
+        return min(values)
+
+
+def _get_max_product(lbs: List[float], ubs: List[float]) -> float:
+    switchers_number = sum(lb * ub < 0 for lb, ub in zip(lbs, ubs))
+    if switchers_number == 0:
+        # sign will be always the same irrespectively of chosen lb or ub
+        neg_no = sum(lb < 0 for lb in lbs)
+        if neg_no % 2 == 0:
+            return prod(max(abs(lb), abs(ub)) for lb, ub in zip(lbs, ubs))
+        else:
+            return -prod(min(abs(lb), abs(ub)) for lb, ub in zip(lbs, ubs))
+    else:
+        # here we can always choose lb or ub to be positive
+        result = prod(ub if abs(lb) < abs(ub) else lb for lb, ub in zip(lbs, ubs))
+        if result > 0:
+            return result
+        # we need to switch one variable
+        values = []
+        for lb, ub in zip(lbs, ubs):
+            chosen, not_chosen = (ub, lb) if abs(lb) < abs(ub) else (lb, ub)
+            values.append(result * not_chosen / chosen)
+        return max(values)
+
+
+def _get_upperbound(expr: Expr, model: SympyOpt) -> float:
+    if isinstance(expr, Symbol):
+        return model.variables[expr.name].get_ub()
+    elif isinstance(expr, Number):
+        return expr.evalf()
+    elif isinstance(expr, Add):
+        return sum(_get_upperbound(x, model) for x in expr._args)
+    elif isinstance(expr, Mul):
+        # this is complicated as it depends on the number of negative values
+        # chosen
+        lbs = [_get_lowerbound(x, model) for x in expr._args]
+        ubs = [_get_upperbound(x, model) for x in expr._args]
+
+        return _get_max_product(lbs, ubs)
+    elif isinstance(expr, Pow):
+        # HACK 1: it assumes exponent is an integer
+        # HACK 2: does not work tightly with spins. Would require a lowerbound
+        # with abs, which is difficult to implement
+        assert isinstance(expr.exp, Integer)
+        baselb = _get_lowerbound(expr.base, model)
+        baseub = _get_upperbound(expr.base, model)
+        return max(float(baselb ** expr.exp), float(baseub ** expr.exp))
+    else:
+        raise ValueError(f"Algebraic expression {type(expr)} cannot be handled")
+
+
+def _get_lowerbound(expr: Expr, model: SympyOpt) -> float:
+    if isinstance(expr, Symbol):
+        return model.variables[expr.name].get_lb()
+    elif isinstance(expr, Number):
+        return expr.evalf()
+    elif isinstance(expr, Add):
+        return sum(_get_lowerbound(x, model) for x in expr._args)
+    elif isinstance(expr, Mul):
+        # this is complicated as it depends on the number of negative values
+        # chosen
+        lbs = [_get_lowerbound(x, model) for x in expr._args]
+        ubs = [_get_upperbound(x, model) for x in expr._args]
+
+        return _get_min_product(lbs, ubs)
+    elif isinstance(expr, Pow):
+        # HACK 1: it assumes exponent is an integer
+        # HACK 2: does not work tightly with spins. Would require a lowerbound
+        # with abs, which is difficult to implement
+        assert isinstance(expr.exp, Integer)
+        if expr.exp % 2 == 1:
+            return float(_get_lowerbound(expr.base, model) ** expr.exp)
+        else:
+            baselb = _get_lowerbound(expr.base, model)
+            baseub = _get_upperbound(expr.base, model)
+            if baselb * baseub < 0:
+                return 0
+            else:
+                return min(float(baselb ** expr.exp), float(baseub ** expr.exp))
+    else:
+        raise ValueError(f"Algebraic expression {type(expr)} cannot be handled")
+
+
+@convert.register
+def convert_sympyopt_ineqtoeq(model: SympyOpt, converter: IneqToEq):
+    assert can_convert(model, converter)
+
+    constr_names: List[str] = []
+    if converter.is_regexp:
+        _rex = re.compile(converter.name)
+        for cname in model.constraints:
+            c = model.constraints[cname]
+            if _rex.fullmatch(cname) and isinstance(c, ConstraintIneq):
+                constr_names.append(cname)
+    else:
+        assert isinstance(model.constraints[converter.name], ConstraintIneq)
+        constr_names.append(converter.name)
+
+    converter.data["verifiers"] = []
+    for cname in constr_names:
+        c = model.constraints.pop(cname)
+        assert isinstance(c, ConstraintIneq)
+
+        if c.sense == INEQ_GEQ_SENSE:
+            slack_bound = -_get_lowerbound(expand(c.exprright - c.exprleft), model)
+        else:  # INEQ_LEQ_SENSE
+            slack_bound = -_get_lowerbound(expand(c.exprleft - c.exprright), model)
+        slack_name = f"{cname}{INTER_STR_SEP}_slack"
+        slack_var = model.int_var(slack_name, lb=0, ub=ceil(slack_bound))
+
+        if c.sense == INEQ_GEQ_SENSE:
+            model.add_constraint(ConstraintEq(c.exprleft - slack_var, c.exprright), cname)
+        else:  # INEQ_LEQ_SENSE
+            model.add_constraint(ConstraintEq(c.exprleft + slack_var, c.exprright), cname)
+
+        if converter.check_slack:
+            converter.data["verifiers"].append((_eq_to_verifier(c), slack_name))
+        else:
+            ctype = "geq" if c.sense == INEQ_GEQ_SENSE else "leq"
+            converter.data["verifiers"].append((_eq_to_verifier(c), slack_name, ctype))
+
+    return model
+
+
+@can_convert.register
+def can_convert_sympyopt_ineqtoeq(model: SympyOpt, converter: IneqToEq) -> bool:
+    if converter.is_regexp:
+        return True
+    name = converter.name
+    if name not in model.constraints:
+        return False
+    return isinstance(model.constraints[name], ConstraintIneq)
 
 
 # MakeMax

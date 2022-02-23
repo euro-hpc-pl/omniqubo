@@ -43,6 +43,14 @@ class IntVar(VarAbsSympyOpt):
     def __str__(self) -> str:
         return f"Integer {self.lb} <= {self.name} <= {self.ub}"
 
+    @property
+    def get_lb(self) -> int:
+        return self.lb
+
+    @property
+    def get_ub(self) -> int:
+        return self.ub
+
 
 class RealVar(VarAbsSympyOpt):
     """Real variable for SympyOpt
@@ -77,6 +85,12 @@ class RealVar(VarAbsSympyOpt):
     def __str__(self) -> str:
         return f"Real {self.lb} <= {self.name} <= {self.ub}"
 
+    def get_lb(self) -> float:
+        return self.lb
+
+    def get_ub(self) -> float:
+        return self.ub
+
 
 class BitVar(VarAbsSympyOpt):
     """Binary variable for SympyOpt
@@ -99,6 +113,12 @@ class BitVar(VarAbsSympyOpt):
     def __str__(self) -> str:
         return f"Bit {self.name}"
 
+    def get_lb(self) -> int:
+        return 0
+
+    def get_ub(self) -> int:
+        return 1
+
 
 class SpinVar(VarAbsSympyOpt):
     """Spin variable for SympyOpt
@@ -120,3 +140,9 @@ class SpinVar(VarAbsSympyOpt):
 
     def __str__(self) -> str:
         return f"Spin {self.name}"
+
+    def get_lb(self) -> int:
+        return -1
+
+    def get_ub(self) -> int:
+        return 1
