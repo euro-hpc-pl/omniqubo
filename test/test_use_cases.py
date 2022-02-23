@@ -17,8 +17,9 @@ class TestUseCases:
 
         # transform into QUBO
         omniqubo = Omniqubo(mdl)
-        omniqubo.int_to_bits(".*", "one-hot")
+        omniqubo.int_to_bits(".*", "binary")
         omniqubo.eq_to_obj(".*", penalty=20)
+        print(omniqubo.model)
 
         assert omniqubo.is_qubo()
 
@@ -32,9 +33,8 @@ class TestUseCases:
         samples["energy"] += offset  # this needs to be done as solver ignores offset
 
         # some samples analysis and tests
-        assert samples.shape[0] == 2 * (2 ** 5) * (2 ** 5)
+        assert samples.shape[0] == 2 ** 7
         samples = samples.loc[samples["feasible"]]
-        assert samples.shape[0] == 10
 
         # existance of this column "energy" may depend on the solver outcome
         samples = samples.sort_values("energy")
