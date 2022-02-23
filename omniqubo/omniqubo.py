@@ -9,7 +9,7 @@ from .constants import DEFAULT_PENALTY_VALUE
 from .converters.converter import ConverterAbs, convert, interpret
 from .converters.eq_to_objective import EqToObj
 from .converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
-from .converters.varreplace import BitToSpin, TrivialIntToBit, VarOneHot
+from .converters.varreplace import BitToSpin, TrivialIntToBit, VarBinary, VarOneHot
 from .models.sympyopt.sympyopt import SympyOpt
 from .models.sympyopt.transpiler.sympyopt_to_bqm import SympyOptToDimod
 from .models.sympyopt.transpiler.transpiler import transpile
@@ -194,10 +194,10 @@ class Omniqubo:
         If is_regexp is True, then names is considered to be a regular
         expression with convention from re package. Otherwise, converter will
         look for variables with such name explicitly. mode specifies the
-        encoding of the integer variables, currently "one-hot" is implemented
-        only. If trivial_conv is set to True, then all integers y with bound
-        lb <= y <= lb+1 will be directly converted into lb + b, where b is
-        binary variable, irrespective of mode chosen.
+        encoding of the integer variables, currently "one-hot" and "binary" is
+        implemented. If trivial_conv is set to True, then all integers y with
+        bound  lb <= y <= lb+1 will be directly converted into lb + b, where b
+        is binary variable, irrespective of mode chosen.
 
         :param names: names of converted variables
         :param mode: encoding method used
@@ -211,6 +211,8 @@ class Omniqubo:
 
         if mode == "one-hot":
             self.convert(VarOneHot(names, is_regexp))
+        elif mode == "binary":
+            self.convert(VarBinary(names, is_regexp))
         else:
             raise ValueError("Uknown mode {mode}")  # pragma: no cover
         return self.model

@@ -9,7 +9,14 @@ from omniqubo.converters.converter import can_convert, convert
 from omniqubo.converters.eq_to_objective import EqToObj
 from omniqubo.converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
 from omniqubo.converters.utils import INTER_STR_SEP
-from omniqubo.converters.varreplace import BitToSpin, TrivialIntToBit, VarOneHot, VarReplace
+from omniqubo.converters.varreplace import (
+    BitToSpin,
+    TrivialIntToBit,
+    VarBinary,
+    VarOneHot,
+    VarReplace,
+    _binary_encoding_coeff,
+)
 from omniqubo.models.sympyopt.constraints import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq
 from omniqubo.models.sympyopt.vars import BitVar, IntVar
 
@@ -215,6 +222,57 @@ def can_convert_sympyopt_varonehot(model: SympyOpt, converter: VarOneHot) -> boo
     if converter.is_regexp:
         return True
     return _can_convert_onehot_sing(model, converter.varname)
+
+
+# VarBinary
+
+# https://link.springer.com/article/10.1007/s11128-019-2213-x Eq. (5)
+def _get_expr_binary(model: SympyOpt, var: IntVar) -> Expr:
+    name = var.name
+    lb: int = var.lb
+    ub: int = var.ub
+    vals = _binary_encoding_coeff(lb, ub)
+    vars = [model.bit_var(f"{name}{INTER_STR_SEP}BIN_{i}") for i in range(len(vals))]
+    return lb + sum(val * x for val, x in zip(vals, vars))
+
+
+def _can_convert_binary_sing(model: SympyOpt, name: str) -> bool:
+    var = model.variables[name]
+    if not isinstance(var, IntVar):
+        return False
+    return var.lb != -INF and var.ub != INF
+
+
+@convert.register
+def convert_sympyopt_varbinary(model: SympyOpt, converter: VarBinary) -> SympyOpt:
+    assert can_convert(model, converter)
+
+    def filtering_fun(vname: str):
+        return _can_convert_onehot_sing(model, vname)
+
+    var_to_replace = _matching_varnames(model, converter, filtering_fun)
+
+    rule_dict = dict()
+    for vname in var_to_replace:
+        var = model.variables[vname]
+        assert isinstance(var, IntVar)
+        rule_dict[var.var] = _get_expr_binary(model, var)
+
+    _sub_expression(model, rule_dict)
+
+    converter.data["bounds"] = dict()
+    for vname in var_to_replace:
+        var = model.variables.pop(vname)
+        assert isinstance(var, IntVar)
+        converter.data["bounds"][vname] = (var.lb, var.ub)
+    return model
+
+
+@can_convert.register
+def can_convert_sympyopt_varbinary(model: SympyOpt, converter: VarOneHot) -> bool:
+    if converter.is_regexp:
+        return True
+    return _can_convert_binary_sing(model, converter.varname)
 
 
 # TrivialIntToBit:

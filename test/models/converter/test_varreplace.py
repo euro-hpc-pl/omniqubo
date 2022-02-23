@@ -2,7 +2,13 @@ from dimod import ExactSolver
 from pandas import DataFrame
 
 from omniqubo.converters.eq_to_objective import EqToObj
-from omniqubo.converters.varreplace import BitToSpin, TrivialIntToBit, VarOneHot, interpret
+from omniqubo.converters.varreplace import (
+    BitToSpin,
+    TrivialIntToBit,
+    VarBinary,
+    VarOneHot,
+    interpret,
+)
 from omniqubo.models.sympyopt.constraints import ConstraintEq
 from omniqubo.models.sympyopt.converters import convert
 from omniqubo.models.sympyopt.sympyopt import SympyOpt
@@ -73,6 +79,71 @@ class TestOneHot:
         print(samples)
         assert sum(samples["feasible"]) == 24
         assert samples.shape[0] == 512  # because y2 is also encoded as one-hot
+        samples = samples.loc[samples["feasible"]]
+        assert set(samples["x"]) == {0, 1}
+        assert set(samples["y1"]) == {-2, -1, 0, 1, 2, 3}
+        assert set(samples["y2"]) == {0, 1}
+
+
+class TestBinary:
+    def test_objective(self):
+        sympyopt = SympyOpt()
+        x = sympyopt.int_var(name="x", lb=-1, ub=2)
+        y = sympyopt.int_var(lb=-2, ub=3, name="y")
+        sympyopt.minimize(2 * x - 3 * y + 2)
+        conv = VarBinary(".*", True)
+        sympyopt = convert(sympyopt, conv)
+
+        sympyopt2 = SympyOpt()
+        x1 = sympyopt2.bit_var(name="x___BIN_0")
+        x2 = sympyopt2.bit_var(name="x___BIN_1")
+        y1 = sympyopt2.bit_var(name="y___BIN_0")
+        y2 = sympyopt2.bit_var(name="y___BIN_1")
+        y3 = sympyopt2.bit_var(name="y___BIN_2")
+        sympyopt2.minimize(2 * (-1 + x1 + 2 * x2) - 3 * (-2 + y1 + 2 * y2 + 2 * y3) + 2)
+        print(sympyopt)
+        print(sympyopt2)
+        assert sympyopt == sympyopt2
+
+    def test_constraints(self):
+        sympyopt = SympyOpt()
+        x = sympyopt.int_var(name="x", lb=-1, ub=2)
+        y = sympyopt.int_var(lb=-2, ub=3, name="y")
+        c = ConstraintEq(-1.5 * x + 2 * y, 4)
+        sympyopt.add_constraint(c, "lin")
+        conv = VarBinary("x", is_regexp=False)
+        sympyopt = convert(sympyopt, conv)
+
+        sympyopt2 = SympyOpt()
+        y = sympyopt2.int_var(lb=-2, ub=3, name="y")
+        x1 = sympyopt2.bit_var(name="x___BIN_0")
+        x2 = sympyopt2.bit_var(name="x___BIN_1")
+        c = ConstraintEq(-1.5 * (-1 + x1 + 2 * x2) + 2 * y, 4)
+        sympyopt2.add_constraint(c, name="lin")
+        assert sympyopt == sympyopt2
+
+    def test_interpret(self):
+        sympyopt = SympyOpt()
+        x = sympyopt.bit_var(name="x")
+        y1 = sympyopt.int_var(lb=-2, ub=3, name="y1")
+        y2 = sympyopt.int_var(lb=0, ub=1, name="y2")
+        sympyopt.minimize(2 * x - 3 * y1 + y2 + 2)
+
+        conv = VarBinary(".*", True)
+        sympyopt = convert(sympyopt, conv)
+
+        bqm = SympyOptToDimod().transpile(sympyopt)
+        samples = ExactSolver().sample_qubo(bqm.to_qubo()[0])
+        samples = dimod_import(samples)
+        print(samples)
+        samples: DataFrame = interpret(samples, conv)
+        print(samples)
+        assert sum(samples["feasible"]) == 2 ** 5  # some cases may be repetead
+        assert samples.shape[0] == 2 ** 5
+        samples = samples.loc[samples["feasible"]]
+        assert set(samples["x"]) == {0, 1}
+        assert set(samples["y1"]) == {-2, -1, 0, 1, 2, 3}
+        assert set(samples["y2"]) == {0, 1}
 
 
 class TestTrivialIntToBit:

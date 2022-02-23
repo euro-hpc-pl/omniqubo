@@ -67,6 +67,48 @@ def interpret_varonehot(samples: DataFrame, converter: VarOneHot) -> DataFrame:
     return samples
 
 
+class VarBinary(VarReplace):
+    """Replace integer variables with binary encoding
+
+    Replaces integer variables with binary encoding. For variable lb <= y <= ub
+    the encoding creates approximately log(ub-lb+1) binary variables. The limits
+    of y needs to be finite integer numbers. If is_regexp is set to True, then
+    all bounded integer variables are replaced.
+
+    :param varname: the replaced integer variable
+    :param is_regexp: flag deciding if varname is a regular expression
+    """
+
+    def __init__(self, varname: str, is_regexp: bool) -> None:
+        super().__init__(varname, is_regexp)
+
+
+def _binary_encoding_coeff(lb: int, ub: int):
+    span_size = ub - lb + 1
+    is_power_of_two = span_size and (not (span_size & (span_size - 1)))
+    if is_power_of_two:
+        bit_no = span_size.bit_length() - 1
+        vals = [2 ** i for i in range(bit_no)]
+    else:
+        bit_no = span_size.bit_length()
+        vals = [2 ** i for i in range(bit_no - 1)]
+        vals.append(ub - lb - sum(vals))
+    return vals
+
+
+@interpret.register
+def interpret_binary(samples: DataFrame, converter: VarBinary) -> DataFrame:
+    for name in converter.data["bounds"].keys():
+        lb, ub = converter.data["bounds"][name]
+        vals = _binary_encoding_coeff(lb, ub)
+        bnames = [f"{name}{INTER_STR_SEP}BIN_{i}" for i in range(len(vals))]
+
+        samples[name] = lb + sum(val * samples[bname] for val, bname in zip(vals, bnames))
+        for n in bnames:
+            samples.pop(n)
+    return samples
+
+
 class TrivialIntToBit(VarReplace):
     """Replace integer with binary variable
 
