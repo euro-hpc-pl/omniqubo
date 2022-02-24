@@ -1,0 +1,27 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/__pycache__": true,
+        "**/*_cache": true
+    },
+    "workbench.editor.highlightModifiedTabs": true,
+    "editor.formatOnSave": true,
+    "python.formatting.provider": "black",
+    "[python]": {
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+        }
+    },
+    "python.testing.pytestArgs": [],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "editor.rulers": [
+        80,
+        100
+    ]
+}

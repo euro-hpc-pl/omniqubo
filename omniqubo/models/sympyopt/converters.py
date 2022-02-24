@@ -270,7 +270,6 @@ def can_convert_sympyopt_makemin(model: SympyOpt, converter: MakeMin) -> bool:
 @convert.register
 def convert_sympyopt_removeconstraint(model: SympyOpt, converter: RemoveConstraint) -> SympyOpt:
     assert can_convert(model, converter)
-    # TODO implement condition functions to data for interpret
     converter.data["verifiers"] = []
 
     to_be_removed: List[str] = []
