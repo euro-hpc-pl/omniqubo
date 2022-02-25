@@ -126,6 +126,8 @@ class TestOmniqubo:
         z = mdl.binary_var(name="z")
         mdl.minimize((x + y) ** 2 - 2 * z + 3)
         mdl.add_constraint(x == 1, ctname="c1")
+        mdl.add_constraint(y <= z, ctname="c2")
+        mdl.add_constraint(x >= z, ctname="c3")
 
         omniqubo = Omniqubo(mdl)
         omniqubo.rm_constraints(".*")
@@ -146,7 +148,7 @@ class TestOmniqubo:
         samples = omniqubo.interpret(dimod_import(df))
         assert samples.shape[0] == 2 ** 3
         samples = samples.loc[samples["feasible"]]
-        assert samples.shape[0] == 2 ** 2
+        assert samples.shape[0] == 3
 
     def test_name_eq_to_obj(self):
         sympyopt = SympyOpt()

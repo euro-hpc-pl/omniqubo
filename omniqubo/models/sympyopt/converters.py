@@ -110,25 +110,7 @@ def _get_min_product(lbs: List[float], ubs: List[float]) -> float:
 # possible value
 # it assumes that list1 is element-wise smaller than list2 of the same size
 def _get_max_product(lbs: List[float], ubs: List[float]) -> float:
-    switchers_number = sum(lb * ub <= 0 for lb, ub in zip(lbs, ubs))
-    if switchers_number == 0:
-        # sign will be always the same irrespectively of chosen lb or ub
-        neg_no = sum(lb < 0 for lb in lbs)
-        if neg_no % 2 == 0:
-            return prod(max(abs(lb), abs(ub)) for lb, ub in zip(lbs, ubs))
-        else:
-            return -prod(min(abs(lb), abs(ub)) for lb, ub in zip(lbs, ubs))
-    else:
-        # here we can always choose lb or ub to be positive
-        result = prod(ub if abs(lb) < abs(ub) else lb for lb, ub in zip(lbs, ubs))
-        if result >= 0:
-            return result
-        # we need to switch one variable
-        values = []
-        for lb, ub in zip(lbs, ubs):
-            chosen, not_chosen = (ub, lb) if abs(lb) < abs(ub) else (lb, ub)
-            values.append(result * not_chosen / chosen)
-        return max(values)
+    return -_get_min_product([-x for x in ubs], [-x for x in lbs])
 
 
 # gets upperbound on the sympy expression. Model is used for getting var bounds
