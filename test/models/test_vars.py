@@ -1,3 +1,5 @@
+from sympy.core.evalf import INF
+
 from omniqubo.models.sympyopt.sympyopt import SympyOpt
 
 
@@ -24,6 +26,15 @@ class TestIntVar:
         x = sympyopt.variables[sympyopt.int_var(name="x", lb=4, ub=10).name]
         assert str(x) == "Integer 4 <= x <= 10"
 
+    def test_bounds(self):
+        sympyopt = SympyOpt()
+        y1 = sympyopt.variables[sympyopt.int_var(name="y1").name]
+        y2 = sympyopt.variables[sympyopt.int_var(name="y2", lb=-1, ub=4).name]
+        assert y1.get_lb() == -INF
+        assert y1.get_ub() == INF
+        assert y2.get_lb() == -1
+        assert y2.get_ub() == 4
+
 
 class TestBitVar:
     def test_eq(self):
@@ -37,6 +48,12 @@ class TestBitVar:
 
         assert y1 == y2
         assert y1 != y3
+
+    def test_bounds(self):
+        sympyopt = SympyOpt()
+        x = sympyopt.variables[sympyopt.bit_var(name="x").name]
+        assert x.get_lb() == 0
+        assert x.get_ub() == 1
 
     def test_str(self):
         sympyopt = SympyOpt()
@@ -59,6 +76,15 @@ class TestRealVar:
         assert y1 == y2
         assert y1 != y3
         assert y1 != y4
+
+    def test_bounds(self):
+        sympyopt = SympyOpt()
+        y1 = sympyopt.variables[sympyopt.real_var(name="y1").name]
+        y2 = sympyopt.variables[sympyopt.real_var(name="y2", lb=-1, ub=4).name]
+        assert y1.get_lb() == -INF
+        assert y1.get_ub() == INF
+        assert y2.get_lb() == -1
+        assert y2.get_ub() == 4
 
     def test_str(self):
         sympyopt = SympyOpt()
@@ -85,3 +111,9 @@ class TestSpinVar:
         sympyopt = SympyOpt()
         y = sympyopt.variables[sympyopt.spin_var(name="y").name]
         assert str(y) == "Spin y"
+
+    def test_bounds(self):
+        sympyopt = SympyOpt()
+        x = sympyopt.variables[sympyopt.spin_var(name="x").name]
+        assert x.get_lb() == -1
+        assert x.get_ub() == 1
