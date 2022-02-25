@@ -65,4 +65,5 @@ class TestNewConvert:
         with pytest.raises(NotImplementedError):
             interpret(samples, conv)
 
-        assert can_convert(sympyopt, conv)
+        with pytest.raises(NotImplementedError):
+            assert can_convert(sympyopt, conv)

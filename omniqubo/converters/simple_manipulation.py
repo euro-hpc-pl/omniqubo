@@ -68,3 +68,32 @@ def interpret_removeconstraint(samples: DataFrame, converter: RemoveConstraint) 
         else:
             ValueError(f"Uknonwn Constraint type {ctype}")  # pragma: no cover
     return samples
+
+
+class SetIntVarBounds(ConverterAbs):
+    """Set bounds for the variable if it is unbounded
+
+    If lb or ub is None, then the bound is not changed. If is_regexp is set
+    to True, then for all variables with matching names bounds will be
+    updated. lb and ub cannot be None simultaneously.
+
+    :param name: the name of the removed model
+    :param is_regexp: flag deciding if name is regular expression
+    :param lb: the lower bound, defaults to None
+    :param ub: the upper bound, defaults to None
+    """
+
+    def __init__(self, name: str, is_regexp: bool, lb: int, ub: int) -> None:
+        assert lb is not None or ub is not None
+        if lb is not None and ub is not None:
+            assert lb < ub
+        self.varname = name
+        self.is_regexp = is_regexp
+        self.lb = lb
+        self.ub = ub
+        super().__init__()
+
+
+@interpret.register
+def interpret_setintvarbounds(samples: DataFrame, converter: SetIntVarBounds) -> DataFrame:
+    return samples

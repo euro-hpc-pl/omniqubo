@@ -40,7 +40,9 @@ def convert(model: ModelAbs, converter: ConverterAbs):
 
 @multimethod
 def can_convert(model: ModelAbs, converter: ConverterAbs) -> bool:
-    return True
+    raise NotImplementedError(
+        f"can_convert not implemented for {type(converter)} and {type(model)}"
+    )
 
 
 @multimethod

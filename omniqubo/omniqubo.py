@@ -1,5 +1,6 @@
 from copy import deepcopy
 from typing import List
+from warnings import warn
 
 from pandas.core.frame import DataFrame
 
@@ -9,7 +10,7 @@ from omniqubo.model import ModelAbs
 from .constants import DEFAULT_PENALTY_VALUE
 from .converters.converter import ConverterAbs, convert, interpret
 from .converters.eq_to_objective import EqToObj
-from .converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
+from .converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint, SetIntVarBounds
 from .converters.varreplace import BitToSpin, TrivialIntToBit, VarBinary, VarOneHot
 from .models.sympyopt.sympyopt import SympyOpt
 from .models.sympyopt.transpiler.sympyopt_to_bqm import SympyOptToDimod
@@ -77,7 +78,7 @@ class Omniqubo:
             samples = interpret(samples, converter)
         return samples
 
-    def to_qubo(self, penalty: float, quadratization_strength: float):
+    def to_qubo(self, penalty: float, quadratization_strength: float) -> ModelAbs:
         """Transform PIP into QUBO
 
         In the given order: transform inequality to equality, transform
@@ -91,9 +92,11 @@ class Omniqubo:
         :param penalty: penalty used for shifting equality.
         :param quadratization_strength: penalty used in quadratization.
         """
-        raise NotImplementedError()
+        self.to_hobo(penalty)
+        warn("Quadratization not implemented yet - requires QIP as input to Omniqubo")
+        return self.model
 
-    def to_hobo(self, penalty: float):
+    def to_hobo(self, penalty: float) -> ModelAbs:
         """Transform PIP into QUBO
 
         In the given order: transform inequality to equality, transform
@@ -105,7 +108,10 @@ class Omniqubo:
 
         :param penalty: penalty used for shifting equality.
         """
-        raise NotImplementedError()
+        self.ineq_to_eq(".*")
+        self.eq_to_obj(".*", penalty=penalty)
+        self.int_to_bits(".*", mode="binary")
+        return self.model
 
     def export(self, mode: str):
         """Export the model
@@ -235,6 +241,21 @@ class Omniqubo:
             self.convert(VarBinary(names, is_regexp))
         else:
             raise ValueError("Uknown mode {mode}")  # pragma: no cover
+        return self.model
+
+    def set_int_bounds(self, names: str, lb: int, ub: int, is_regexp: bool = True) -> ModelAbs:
+        """Set bounds for the variable if it is unbounded
+
+        If lb or ub is None, then the bound is not changed. If is_regexp is set
+        to True, then for all variables with matching names bounds will be
+        updated. lb and ub cannot be None simultaneously.
+
+        :param name: the name of the removed model
+        :param is_regexp: flag deciding if name is regular expression
+        :param lb: the lower bound, defaults to None
+        :param ub: the upper bound, defaults to None
+        """
+        self.convert(SetIntVarBounds(names, is_regexp, lb, ub))
         return self.model
 
     def bit_to_spin(self, names: str, is_regexp: bool = True, reversed: bool = False) -> ModelAbs:

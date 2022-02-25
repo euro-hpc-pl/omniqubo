@@ -148,6 +148,7 @@ class TestOmniqubo:
         samples = omniqubo.interpret(dimod_import(df))
         assert samples.shape[0] == 2 ** 3
         samples = samples.loc[samples["feasible"]]
+        print(samples)
         assert samples.shape[0] == 3
 
     def test_name_eq_to_obj(self):

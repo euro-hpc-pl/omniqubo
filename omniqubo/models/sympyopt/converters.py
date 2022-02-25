@@ -9,7 +9,12 @@ from sympy.core.evalf import INF
 from omniqubo.converters.converter import can_convert, convert
 from omniqubo.converters.eq_to_objective import EqToObj
 from omniqubo.converters.ineq_to_eq import IneqToEq
-from omniqubo.converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint
+from omniqubo.converters.simple_manipulation import (
+    MakeMax,
+    MakeMin,
+    RemoveConstraint,
+    SetIntVarBounds,
+)
 from omniqubo.converters.utils import INTER_STR_SEP
 from omniqubo.converters.varreplace import (
     BitToSpin,
@@ -322,7 +327,9 @@ def _sub_expression(model: SympyOpt, rule_dict: Dict[Symbol, Expr]):
 # looks for a matching variables names according to the name (perhaps regular
 # expression). if is regular expression - filter the varnames. Otherwise
 # filtering_fun has to be satisfied
-def _matching_varnames(model: SympyOpt, converter: VarReplace, filtering_fun: Callable):
+def _matching_varnames(
+    model: SympyOpt, converter: Union[VarReplace, SetIntVarBounds], filtering_fun: Callable
+):
     var_to_replace: List[str] = []
     if converter.is_regexp:
         _rex = re.compile(converter.varname)
@@ -341,6 +348,47 @@ def _can_convert_int(model: SympyOpt, name: str) -> bool:
     if not isinstance(var, IntVar):
         return False
     return var.lb != -INF and var.ub != INF
+
+
+# SetIntVarBounds
+
+# verifies if single variable can gave bounds set up
+def _can_convert_intsetbounds_sing(model: SympyOpt, converter: SetIntVarBounds, name: str) -> bool:
+    if name not in model.variables:
+        return False
+    var = model.variables[name]
+    if not isinstance(var, IntVar):
+        return False
+    return (var.get_lb() == -INF and converter.lb is not None) or (
+        var.get_lb() == INF and converter.ub is not None
+    )
+
+
+@convert.register
+def convert_sympyopt_setintvarbounds(model: SympyOpt, converter: SetIntVarBounds) -> SympyOpt:
+    assert can_convert(model, converter)
+
+    def filtering_fun(varname: str) -> bool:
+        return _can_convert_intsetbounds_sing(model, converter, varname)
+
+    varnames = _matching_varnames(model, converter, filtering_fun=filtering_fun)
+    for vname in varnames:
+        var = model.variables[vname]
+        assert isinstance(var, IntVar)
+        if converter.lb is not None and var.get_lb() == -INF:
+            assert converter.lb < var.ub
+            var.lb = converter.lb
+        if converter.ub is not None and var.get_ub() == INF:
+            assert var.lb < converter.ub
+            var.ub = converter.ub
+    return model
+
+
+@can_convert.register
+def can_convert_sympyopt_setintvarbounds(model: SympyOpt, converter: SetIntVarBounds) -> bool:
+    if converter.is_regexp:
+        return True
+    return _can_convert_intsetbounds_sing(model, converter, converter.varname)
 
 
 # VarOneHot
@@ -429,7 +477,7 @@ def convert_sympyopt_varbinary(model: SympyOpt, converter: VarBinary) -> SympyOp
 
 
 @can_convert.register
-def can_convert_sympyopt_varbinary(model: SympyOpt, converter: VarOneHot) -> bool:
+def can_convert_sympyopt_varbinary(model: SympyOpt, converter: VarBinary) -> bool:
     if converter.is_regexp:
         return True
     return _can_convert_int(model, converter.varname)
