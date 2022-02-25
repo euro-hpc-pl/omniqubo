@@ -138,7 +138,7 @@ def _get_upperbound(expr: Expr, model: SympyOpt) -> float:
         baseub = _get_upperbound(expr.base, model)
         return max(float(baselb ** expr.exp), float(baseub ** expr.exp))
     else:
-        raise ValueError(f"Algebraic expression {type(expr)} cannot be handled")
+        raise ValueError(f"Algebraic expression {type(expr)} cannot be handled")  # pragma: no cover
 
 
 # gets lowerbound on the sympy expression. Model is used for getting var bounds
@@ -172,7 +172,7 @@ def _get_lowerbound(expr: Expr, model: SympyOpt) -> float:
             else:
                 return min(float(baselb ** expr.exp), float(baseub ** expr.exp))
     else:
-        raise ValueError(f"Algebraic expression {type(expr)} cannot be handled")
+        raise ValueError(f"Algebraic expression {type(expr)} cannot be handled")  # pragma: no cover
 
 
 @convert.register
