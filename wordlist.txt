@@ -11,6 +11,7 @@ docplex
 encodings
 exprleft
 exprright
+infeasibility
 lb
 nan
 nonnegative
@@ -18,6 +19,7 @@ np
 omniqubo
 quadratically
 quadratization
+satisfiable
 sympy
 transpile
 transpiled

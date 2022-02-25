@@ -3,6 +3,7 @@ from typing import List
 
 from pandas.core.frame import DataFrame
 
+from omniqubo.converters.ineq_to_eq import IneqToEq
 from omniqubo.model import ModelAbs
 
 from .constants import DEFAULT_PENALTY_VALUE
@@ -184,6 +185,25 @@ class Omniqubo:
         if penalty is None:
             penalty = DEFAULT_PENALTY_VALUE
         self.convert(EqToObj(names, is_regexp, penalty))
+        return self.model
+
+    def ineq_to_eq(self, names: str, is_regexp: bool = True, check_slack: bool = False) -> ModelAbs:
+        """Transforms inequality into equality through adding slack variable
+
+        Inequality f(x) <= 0 is transformed into f(x) + s == 0, and f(x) >= 0 is
+        transformed into f(x) - s == 0. In both s is nonnegative bounded integer
+        variable. If is_regexp is True, then names is considered to be a regular
+        expression with convention from re package. Otherwise, converter will
+        look for the constraint with such name explicitly. If check_slack is
+        set to True, then instead of verifying the infeasibility based on
+        inequality, a resulting equality is checked.
+
+        :param names: names of shifted constraints
+        :param is_regexp: specifies if names should be treated as regular expression
+        :param check_slack: if True checks if slack is also correctly set up
+        :return: updated model
+        """
+        self.convert(IneqToEq(names, is_regexp, check_slack))
         return self.model
 
     def int_to_bits(

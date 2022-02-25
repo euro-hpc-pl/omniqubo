@@ -24,18 +24,22 @@ from omniqubo.models.sympyopt.vars import BitVar, IntVar
 
 from .sympyopt import MAX_SENSE, MIN_SENSE, SympyOpt
 
-# EqToObj
+# for explanation of how each convert and can_convert works, see documentation
+# of appropriate converter class
 
 
+# transforms sympy-based constraint a ==/<=/>= b into a function computing a - b
+# https://stackoverflow.com/questions/64475745/how-to-express-dataframe-operations-using-symbols
 def _eq_to_verifier(c: Union[ConstraintEq, ConstraintIneq]):
-    # https://stackoverflow.com/questions/64475745/how-to-express-dataframe-operations-using-symbols
-    # also used for RemoveConstraint
     def verifier(df: DataFrame):
         expr = c.exprleft - c.exprright
         callable_obj = lambdify(list(expr.free_symbols), expr)
         return callable_obj(**{str(a): df[str(a)] for a in expr.atoms() if isinstance(a, Symbol)})
 
     return verifier
+
+
+# EqToObj
 
 
 @convert.register
@@ -60,7 +64,8 @@ def convert_sympyopt_eqtoobj(model: SympyOpt, converter: EqToObj):
             model.objective += converter.penalty * (c.exprleft - c.exprright) ** 2
         else:
             model.objective -= converter.penalty * (c.exprleft - c.exprright) ** 2
-        converter.data["verifiers"].append(_eq_to_verifier(c))
+        if c.check_interpret:
+            converter.data["verifiers"].append(_eq_to_verifier(c))
     return model
 
 
@@ -76,9 +81,11 @@ def can_convert_sympyopt_eqtoobj(model: SympyOpt, converter: EqToObj) -> bool:
 
 # IneqToEq
 
+# if lbs and ubs are bound of expressions in a product, outputs the smallest
+# possible value
 # it assumes that list1 is element-wise smaller than list2 of the same size
 def _get_min_product(lbs: List[float], ubs: List[float]) -> float:
-    switchers_number = sum(lb * ub < 0 for lb, ub in zip(lbs, ubs))
+    switchers_number = sum(lb * ub <= 0 for lb, ub in zip(lbs, ubs))
     if switchers_number == 0:
         # sign will be always the same irrespectively of chosen lb or ub
         neg_no = sum(lb < 0 for lb in lbs)
@@ -89,7 +96,7 @@ def _get_min_product(lbs: List[float], ubs: List[float]) -> float:
     else:
         # here we can always choose lb or ub to be negative
         result = prod(ub if abs(lb) < abs(ub) else lb for lb, ub in zip(lbs, ubs))
-        if result < 0:
+        if result <= 0:
             return result
         # we need to switch one variable
         values = []
@@ -99,8 +106,11 @@ def _get_min_product(lbs: List[float], ubs: List[float]) -> float:
         return min(values)
 
 
+# if lbs and ubs are bound of expressions in a product, outputs the largest
+# possible value
+# it assumes that list1 is element-wise smaller than list2 of the same size
 def _get_max_product(lbs: List[float], ubs: List[float]) -> float:
-    switchers_number = sum(lb * ub < 0 for lb, ub in zip(lbs, ubs))
+    switchers_number = sum(lb * ub <= 0 for lb, ub in zip(lbs, ubs))
     if switchers_number == 0:
         # sign will be always the same irrespectively of chosen lb or ub
         neg_no = sum(lb < 0 for lb in lbs)
@@ -111,7 +121,7 @@ def _get_max_product(lbs: List[float], ubs: List[float]) -> float:
     else:
         # here we can always choose lb or ub to be positive
         result = prod(ub if abs(lb) < abs(ub) else lb for lb, ub in zip(lbs, ubs))
-        if result > 0:
+        if result >= 0:
             return result
         # we need to switch one variable
         values = []
@@ -121,11 +131,13 @@ def _get_max_product(lbs: List[float], ubs: List[float]) -> float:
         return max(values)
 
 
+# gets upperbound on the sympy expression. Model is used for getting var bounds
+# tight for linear expression
 def _get_upperbound(expr: Expr, model: SympyOpt) -> float:
     if isinstance(expr, Symbol):
         return model.variables[expr.name].get_ub()
     elif isinstance(expr, Number):
-        return expr.evalf()
+        return float(expr.evalf())
     elif isinstance(expr, Add):
         return sum(_get_upperbound(x, model) for x in expr._args)
     elif isinstance(expr, Mul):
@@ -147,11 +159,13 @@ def _get_upperbound(expr: Expr, model: SympyOpt) -> float:
         raise ValueError(f"Algebraic expression {type(expr)} cannot be handled")
 
 
+# gets lowerbound on the sympy expression. Model is used for getting var bounds
+# tight for linear expression
 def _get_lowerbound(expr: Expr, model: SympyOpt) -> float:
     if isinstance(expr, Symbol):
         return model.variables[expr.name].get_lb()
     elif isinstance(expr, Number):
-        return expr.evalf()
+        return float(expr.evalf())
     elif isinstance(expr, Add):
         return sum(_get_lowerbound(x, model) for x in expr._args)
     elif isinstance(expr, Mul):
@@ -171,7 +185,7 @@ def _get_lowerbound(expr: Expr, model: SympyOpt) -> float:
         else:
             baselb = _get_lowerbound(expr.base, model)
             baseub = _get_upperbound(expr.base, model)
-            if baselb * baseub < 0:
+            if baselb * baseub <= 0:
                 return 0
             else:
                 return min(float(baselb ** expr.exp), float(baseub ** expr.exp))
@@ -203,16 +217,24 @@ def convert_sympyopt_ineqtoeq(model: SympyOpt, converter: IneqToEq):
             slack_bound = -_get_lowerbound(expand(c.exprright - c.exprleft), model)
         else:  # INEQ_LEQ_SENSE
             slack_bound = -_get_lowerbound(expand(c.exprleft - c.exprright), model)
-        slack_name = f"{cname}{INTER_STR_SEP}_slack"
-        slack_var = model.int_var(slack_name, lb=0, ub=ceil(slack_bound))
+        slack_name = f"{cname}{INTER_STR_SEP}slack"
+        if slack_bound == 0:
+            slack_var = 0  # no need for a variable
+            slack_name = ""
+        elif slack_bound > 0:
+            slack_var = model.int_var(slack_name, lb=0, ub=ceil(slack_bound))
+        else:
+            raise ValueError(f"Inequality {cname} is not satisfiable")
 
         if c.sense == INEQ_GEQ_SENSE:
-            model.add_constraint(ConstraintEq(c.exprleft - slack_var, c.exprright), cname)
+            c_new = ConstraintEq(c.exprleft - slack_var, c.exprright)
         else:  # INEQ_LEQ_SENSE
-            model.add_constraint(ConstraintEq(c.exprleft + slack_var, c.exprright), cname)
+            c_new = ConstraintEq(c.exprleft + slack_var, c.exprright)
+        c_new.check_interpret = False
+        model.add_constraint(c_new, cname)
 
         if converter.check_slack:
-            converter.data["verifiers"].append((_eq_to_verifier(c), slack_name))
+            converter.data["verifiers"].append((_eq_to_verifier(c_new), slack_name))
         else:
             ctype = "geq" if c.sense == INEQ_GEQ_SENSE else "leq"
             converter.data["verifiers"].append((_eq_to_verifier(c), slack_name, ctype))
@@ -305,7 +327,8 @@ def can_convert_sympyopt_removeconstraint(model: SympyOpt, converter: RemoveCons
 
 # general commands for VarReplace
 
-
+# substitute expression for symbols for objective and all constraints
+# note: rule_dict is much faster than replacing symbols one by one
 def _sub_expression(model: SympyOpt, rule_dict: Dict[Symbol, Expr]):
     model.objective = model.objective.xreplace(rule_dict)
     for c in model.constraints.values():
@@ -314,6 +337,9 @@ def _sub_expression(model: SympyOpt, rule_dict: Dict[Symbol, Expr]):
             c.exprright = c.exprright.xreplace(rule_dict)
 
 
+# looks for a matching variables names according to the name (perhaps regular
+# expression). if is regular expression - filter the varnames. Otherwise
+# filtering_fun has to be satisfied
 def _matching_varnames(model: SympyOpt, converter: VarReplace, filtering_fun: Callable):
     var_to_replace: List[str] = []
     if converter.is_regexp:
@@ -327,9 +353,17 @@ def _matching_varnames(model: SympyOpt, converter: VarReplace, filtering_fun: Ca
     return var_to_replace
 
 
+# check if integer variable can converted according to the One-hot encoding
+def _can_convert_int(model: SympyOpt, name: str) -> bool:
+    var = model.variables[name]
+    if not isinstance(var, IntVar):
+        return False
+    return var.lb != -INF and var.ub != INF
+
+
 # VarOneHot
 
-
+# outputs expression and adds constraint for one-hot encoding
 def _get_expr_add_constr_onehot(model: SympyOpt, var: IntVar) -> Expr:
     name = var.name
     lb = var.lb
@@ -343,19 +377,12 @@ def _get_expr_add_constr_onehot(model: SympyOpt, var: IntVar) -> Expr:
     return sum(v * x for x, v in zip(xs, range(lb, ub + 1)))
 
 
-def _can_convert_onehot_sing(model: SympyOpt, name: str) -> bool:
-    var = model.variables[name]
-    if not isinstance(var, IntVar):
-        return False
-    return var.lb != -INF and var.ub != INF
-
-
 @convert.register
 def convert_sympyopt_varonehot(model: SympyOpt, converter: VarOneHot) -> SympyOpt:
     assert can_convert(model, converter)
 
     def filtering_fun(vname: str):
-        return _can_convert_onehot_sing(model, vname)
+        return _can_convert_int(model, vname)
 
     var_to_replace = _matching_varnames(model, converter, filtering_fun)
 
@@ -379,7 +406,7 @@ def convert_sympyopt_varonehot(model: SympyOpt, converter: VarOneHot) -> SympyOp
 def can_convert_sympyopt_varonehot(model: SympyOpt, converter: VarOneHot) -> bool:
     if converter.is_regexp:
         return True
-    return _can_convert_onehot_sing(model, converter.varname)
+    return _can_convert_int(model, converter.varname)
 
 
 # VarBinary
@@ -394,19 +421,12 @@ def _get_expr_binary(model: SympyOpt, var: IntVar) -> Expr:
     return lb + sum(val * x for val, x in zip(vals, vars))
 
 
-def _can_convert_binary_sing(model: SympyOpt, name: str) -> bool:
-    var = model.variables[name]
-    if not isinstance(var, IntVar):
-        return False
-    return var.lb != -INF and var.ub != INF
-
-
 @convert.register
 def convert_sympyopt_varbinary(model: SympyOpt, converter: VarBinary) -> SympyOpt:
     assert can_convert(model, converter)
 
     def filtering_fun(vname: str):
-        return _can_convert_onehot_sing(model, vname)
+        return _can_convert_int(model, vname)
 
     var_to_replace = _matching_varnames(model, converter, filtering_fun)
 
@@ -430,12 +450,13 @@ def convert_sympyopt_varbinary(model: SympyOpt, converter: VarBinary) -> SympyOp
 def can_convert_sympyopt_varbinary(model: SympyOpt, converter: VarOneHot) -> bool:
     if converter.is_regexp:
         return True
-    return _can_convert_binary_sing(model, converter.varname)
+    return _can_convert_int(model, converter.varname)
 
 
 # TrivialIntToBit:
 
-
+# checks if variables can be converted according to TrivialIntToBit (lb <= y <=
+# lb+1)
 def _can_convert_trivitb_sing(model: SympyOpt, name: str) -> bool:
     var = model.variables[name]
     return isinstance(var, IntVar) and var.ub - var.lb == 1
@@ -485,7 +506,8 @@ def can_convert_sympyopt_trivialinttobit(model: SympyOpt, converter: TrivialIntT
 
 #  BitToSpin
 
-
+# outputs expression transforming Bit to Spin. Note two expressions are
+# possible, and the reversed one is more popular in the literature
 def _get_expr_bittospin(model: SympyOpt, converter: BitToSpin, varname: str) -> Expr:
     var = model.spin_var(f"{varname}{INTER_STR_SEP}bts")
     if converter.reversed:
@@ -494,6 +516,7 @@ def _get_expr_bittospin(model: SympyOpt, converter: BitToSpin, varname: str) -> 
         return 1 + 2 * var
 
 
+# checks if variable is binary and thus can be converted to spin
 def _can_convert_bittospin_sing(model: SympyOpt, name: str) -> bool:
     return isinstance(model.variables[name], BitVar)
 

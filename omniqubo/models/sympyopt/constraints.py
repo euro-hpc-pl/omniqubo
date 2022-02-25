@@ -10,12 +10,14 @@ from .utils import _approx_sympy_expr
 from .vars import VarAbs
 
 
+# outputs list of variables which are not in vars
 def _list_unknown_vars(obj: Expr, vars: Iterable[str]) -> Iterable:
     return filter(lambda v: v.name not in vars, obj.free_symbols)
 
 
 class ConstraintSympyopt(ConstraintAbs):
     def __init__(self) -> None:
+        super().__init__()
         pass
 
 
@@ -36,6 +38,7 @@ class ConstraintEq(ConstraintSympyopt):
 
         self.exprleft = deepcopy(exprleft)
         self.exprright = deepcopy(exprright)
+        super().__init__()
 
     def is_eq_constraint(self) -> bool:
         """Check if the constraint is an equality
@@ -80,6 +83,8 @@ class ConstraintEq(ConstraintSympyopt):
     def __str__(self) -> str:
         return f"{self.exprleft} == {self.exprright}"
 
+    # outputs list of variables which are not in vars
+    # important for verification if all variables are in the model
     def _list_unknown_vars(self, vars: Iterable[str]) -> List[VarAbs]:
         lvars_uknown = _list_unknown_vars(self.exprleft, vars)
         rvars_uknown = _list_unknown_vars(self.exprleft, vars)
@@ -114,6 +119,7 @@ class ConstraintIneq(ConstraintSympyopt):
         if sense != INEQ_GEQ_SENSE and sense != INEQ_LEQ_SENSE:
             raise ValueError(f"incorrect sense {sense}")
         self.sense = sense
+        super().__init__()
 
     def is_eq_constraint(self) -> bool:
         """Check if the constraint is an equality
@@ -158,6 +164,8 @@ class ConstraintIneq(ConstraintSympyopt):
         sense = ">=" if self.sense == INEQ_GEQ_SENSE else "<="
         return f"{self.exprleft} {sense} {self.exprright}"
 
+    # outputs list of variables which are not in vars
+    # important for verification if all variables are in the model
     def _list_unknown_vars(self, vars: Iterable[str]) -> List[VarAbs]:
         lvars_uknown = _list_unknown_vars(self.exprleft, vars)
         rvars_uknown = _list_unknown_vars(self.exprleft, vars)

@@ -43,12 +43,12 @@ class IntVar(VarAbsSympyOpt):
     def __str__(self) -> str:
         return f"Integer {self.lb} <= {self.name} <= {self.ub}"
 
-    @property
     def get_lb(self) -> int:
+        """Outputs the lower bound of the variable"""
         return self.lb
 
-    @property
     def get_ub(self) -> int:
+        """Outputs the upper bound of the variable"""
         return self.ub
 
 
@@ -86,9 +86,11 @@ class RealVar(VarAbsSympyOpt):
         return f"Real {self.lb} <= {self.name} <= {self.ub}"
 
     def get_lb(self) -> float:
+        """Outputs the lower bound of the variable"""
         return self.lb
 
     def get_ub(self) -> float:
+        """Outputs the upper bound of the variable"""
         return self.ub
 
 
@@ -114,9 +116,11 @@ class BitVar(VarAbsSympyOpt):
         return f"Bit {self.name}"
 
     def get_lb(self) -> int:
+        """Outputs the lower bound of the variable (always 0)"""
         return 0
 
     def get_ub(self) -> int:
+        """Outputs the upper bound of the variable (always 1)"""
         return 1
 
 
@@ -142,7 +146,9 @@ class SpinVar(VarAbsSympyOpt):
         return f"Spin {self.name}"
 
     def get_lb(self) -> int:
+        """Outputs the lower bound of the variable (always -1)"""
         return -1
 
     def get_ub(self) -> int:
+        """Outputs the lower bound of the variable (always 1)"""
         return 1

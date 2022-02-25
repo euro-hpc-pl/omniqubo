@@ -9,6 +9,8 @@ class ConstraintAbs(ABC):
 
     @abstractmethod
     def __init__(self) -> None:
+        # important for example to avoid checking equalities coming from equality
+        self.check_interpret = True
         pass
 
     @abstractmethod

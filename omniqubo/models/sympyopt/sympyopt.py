@@ -27,6 +27,7 @@ class SympyOpt(ModelAbs):
         self.sense = MIN_SENSE
         self.variables: Dict[str, VarAbsSympyOpt] = dict()
 
+    # saves the objective
     def _set_objective(self, obj: Expr) -> None:
         if not isinstance(obj, Expr):
             obj = S(obj)
@@ -220,6 +221,7 @@ class SympyOpt(ModelAbs):
                 out_string += f"   {name}: {self.variables[name]}\n"
         return out_string
 
+    # run by _bitspin_simp, check comments in there
     def _bitspin_simp_rec(self, expr: Expr) -> Expr:
         if expr.is_number:
             return expr
@@ -230,12 +232,12 @@ class SympyOpt(ModelAbs):
                 name = expr.base.name
                 var = self.variables[name]
                 if isinstance(var, BitVar):
-                    return expr.base
+                    return expr.base  # because b^n = b
                 elif isinstance(var, SpinVar):
                     if expr.exp % 2 == 0:
-                        return S(1)
+                        return S(1)  # because s^(2n) = 1
                     else:
-                        return expr.base
+                        return expr.base  # because s^(2n+1) = s
                 else:
                     return expr
         if isinstance(expr, core.mul.Mul):  # if produce
@@ -247,6 +249,8 @@ class SympyOpt(ModelAbs):
         # don't do anything inside a non-polynomial parts, for example exp(b**3) == exp(b**3)
         return expr
 
+    # takes the polynomial expression and simplifies it based on the
+    # simplification on powers of bit/spins
     def _bitspin_simp(self, expr: Expr) -> Expr:
         expr = expand(expr)
         if isinstance(expr, core.add.Add):
@@ -257,6 +261,7 @@ class SympyOpt(ModelAbs):
         else:
             return self._bitspin_simp_rec(expr)
 
+    # checks if all constraints are polynomials, and checks the order
     def _are_constrs_poly(self, order=None) -> bool:
         for c in self.constraints.values():
             if not isinstance(c, (ConstraintEq, ConstraintIneq)):
