@@ -541,9 +541,9 @@ def can_convert_sympyopt_trivialinttobit(model: SympyOpt, converter: TrivialIntT
 def _get_expr_bittospin(model: SympyOpt, converter: BitToSpin, varname: str) -> Expr:
     var = model.spin_var(f"{varname}{INTER_STR_SEP}bts")
     if converter.reversed:
-        return 1 - 2 * var
+        return (1 - var) / 2
     else:
-        return 1 + 2 * var
+        return (1 + var) / 2
 
 
 # checks if variable is binary and thus can be converted to spin

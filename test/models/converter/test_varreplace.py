@@ -198,9 +198,9 @@ class TestBitToSpin:
         sympyopt2 = SympyOpt()
         xx = sympyopt2.spin_var(name="x___bts")
         yy = sympyopt2.spin_var(name="y___bts")
-        cc = ConstraintEq(1 - 2 * yy, 2)
+        cc = ConstraintEq((1 - yy) / 2, 2)
         sympyopt2.add_constraint(cc, "c1")
-        sympyopt2.minimize(2 * (1 - 2 * xx) * (1 - 2 * yy) - 1 + 2 * xx + 2 - 4 * yy + 2)
+        sympyopt2.minimize((1 - xx) * (1 - yy) / 2 - (1 - xx) / 2 + 1 - yy + 2)
         assert sympyopt == sympyopt2
 
     def test_conversion_not_reversed(self):
@@ -216,9 +216,9 @@ class TestBitToSpin:
         sympyopt2 = SympyOpt()
         xx = sympyopt2.spin_var(name="x___bts")
         yy = sympyopt2.spin_var(name="y___bts")
-        cc = ConstraintEq(1 + 2 * yy, 2)
+        cc = ConstraintEq((1 + yy) / 2, 2)
         sympyopt2.add_constraint(cc, "c1")
-        sympyopt2.minimize(2 * (1 + 2 * xx) * (1 + 2 * yy) - 1 - 2 * xx + 2 + 4 * yy + 2)
+        sympyopt2.minimize((1 + xx) * (1 + yy) / 2 - (1 + xx) / 2 + 1 + yy + 2)
         assert sympyopt == sympyopt
 
     def test_no_regexp(self):
@@ -234,9 +234,9 @@ class TestBitToSpin:
         sympyopt2 = SympyOpt()
         x = sympyopt2.bit_var(name="x")
         yy = sympyopt2.spin_var(name="y___bts")
-        cc = ConstraintEq(1 - 2 * yy, 2)
+        cc = ConstraintEq((1 - yy) / 2, 2)
         sympyopt2.add_constraint(cc, "c1")
-        sympyopt2.minimize(2 * x * (1 - 2 * yy) - x + 2 - 4 * yy + 2)
+        sympyopt2.minimize(2 * x * (1 - yy) / 2 - x + 1 - yy + 2)
         print(sympyopt)
         print(sympyopt2)
         assert sympyopt == sympyopt2
