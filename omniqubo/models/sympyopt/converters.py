@@ -495,6 +495,7 @@ def _can_convert_trivitb_sing(model: SympyOpt, name: str) -> bool:
 @convert.register
 def convert_sympyopt_trivialinttobit(model: SympyOpt, converter: TrivialIntToBit) -> SympyOpt:
     assert can_convert(model, converter)
+    converter.data["lb"] = dict()
     if converter.is_regexp:
 
         def filtering_fun(vname: str):
@@ -521,7 +522,6 @@ def convert_sympyopt_trivialinttobit(model: SympyOpt, converter: TrivialIntToBit
 
     _sub_expression(model, rule_dict)
 
-    converter.data["lb"] = dict()
     for vname in var_to_replace:
         var = model.variables.pop(vname)
         assert isinstance(var, IntVar)

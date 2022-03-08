@@ -4,14 +4,13 @@ from warnings import warn
 
 from pandas.core.frame import DataFrame
 
-from omniqubo.converters.ineq_to_eq import IneqToEq
-from omniqubo.model import ModelAbs
-
 from .constants import DEFAULT_PENALTY_VALUE
 from .converters.converter import ConverterAbs, convert, interpret
 from .converters.eq_to_objective import EqToObj
+from .converters.ineq_to_eq import IneqToEq
 from .converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint, SetIntVarBounds
 from .converters.varreplace import BitToSpin, TrivialIntToBit, VarBinary, VarOneHot
+from .model import ModelAbs
 from .models.sympyopt.sympyopt import SympyOpt
 from .models.sympyopt.transpiler.sympyopt_to_bqm import SympyOptToDimod
 from .models.sympyopt.transpiler.transpiler import transpile
