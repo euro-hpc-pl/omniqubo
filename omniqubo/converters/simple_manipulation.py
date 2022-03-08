@@ -97,3 +97,26 @@ class SetIntVarBounds(ConverterAbs):
 @interpret.register
 def interpret_setintvarbounds(samples: DataFrame, converter: SetIntVarBounds) -> DataFrame:
     return samples
+
+
+class RemoveTrivialConstraints(ConverterAbs):
+    """Remove trivial constraints
+
+    Remove trivial inequalities of the form P(x) <= 0, where max P(x) <= 0 can
+    be shown. Similar for other types of inequalities.
+
+    :param name: the name of the removed model
+    :param is_regexp: flag deciding if name is regular expression
+    """
+
+    def __init__(self, name: str, is_regexp: bool) -> None:
+        self.name = name
+        self.is_regexp = is_regexp
+        super().__init__()
+
+
+@interpret.register
+def interpret_removetrivialconstraints(
+    samples: DataFrame, converter: RemoveTrivialConstraints
+) -> DataFrame:
+    return samples

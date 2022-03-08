@@ -109,6 +109,26 @@ def interpret_binary(samples: DataFrame, converter: VarBinary) -> DataFrame:
     return samples
 
 
+class VarPracticalBinary(VarReplace):
+    """Replace integer variables with practical binary encoding
+
+    TODO: fill
+
+    :param varname: the replaced integer variable
+    :param is_regexp: flag deciding if varname is a regular expression
+    :param ub: allowed upper bound
+    """
+
+    def __init__(self, varname: str, is_regexp: bool, ub: int) -> None:
+        assert ub > 1
+        super().__init__(varname, is_regexp)
+
+
+@interpret.register
+def interpret_varpracticalbinary(samples: DataFrame, converter: VarPracticalBinary) -> DataFrame:
+    raise NotImplementedError()
+
+
 class TrivialIntToBit(VarReplace):
     """Replace integer with binary variable
 
@@ -162,4 +182,33 @@ def interpret_bittospin(samples: DataFrame, converter: BitToSpin) -> DataFrame:
             samples[name] = (1 - samples.pop(name_new)) / 2
         else:
             samples[name] = (1 + samples.pop(name_new)) / 2
+    return samples
+
+
+class SpinToBit(VarReplace):
+    """Replace spin variable with bit variable
+
+    Replaces spin variable s with bit variable b. The formula is 1-2*b
+    if reversed is set to False, or 2*b-1 otherwise. If is_regexp is set to
+    True, then all binary variables are replaced.
+
+    :param varname: the replaced spin variable
+    :param is_regexp: flag deciding if varname is regular expression
+    :param reversed: the flag denoting which formula is used for replacement
+    """
+
+    def __init__(self, varname: str, is_regexp: bool, reversed: bool) -> None:
+        super().__init__(varname, is_regexp)
+        self.reversed = reversed
+
+
+@interpret.register
+def interpret_spintobit(samples: DataFrame, converter: SpinToBit) -> DataFrame:
+    for name in converter.data["varnames"]:
+        name_new = f"{name}{INTER_STR_SEP}stb"
+        samples.rename(columns={name_new: name})
+        if converter.reversed:
+            samples[name] = 1 - 2 * samples.pop(name_new)
+        else:
+            samples[name] = 1 + 2 * samples.pop(name_new)
     return samples

@@ -9,18 +9,22 @@ from sympy.core.evalf import INF
 from omniqubo.converters.converter import can_convert, convert
 from omniqubo.converters.eq_to_objective import EqToObj
 from omniqubo.converters.ineq_to_eq import IneqToEq
+from omniqubo.converters.quadratize import QuadratizePyqubo
 from omniqubo.converters.simple_manipulation import (
     MakeMax,
     MakeMin,
     RemoveConstraint,
+    RemoveTrivialConstraints,
     SetIntVarBounds,
 )
 from omniqubo.converters.utils import INTER_STR_SEP
 from omniqubo.converters.varreplace import (
     BitToSpin,
+    SpinToBit,
     TrivialIntToBit,
     VarBinary,
     VarOneHot,
+    VarPracticalBinary,
     VarReplace,
     _binary_encoding_coeff,
 )
@@ -239,6 +243,20 @@ def can_convert_sympyopt_ineqtoeq(model: SympyOpt, converter: IneqToEq) -> bool:
     return isinstance(model.constraints[name], ConstraintIneq)
 
 
+# QuadratizePyqubo
+
+
+@convert.register
+def convert_sympyopt_quadratizepyqubo(model: SympyOpt, converter: QuadratizePyqubo) -> SympyOpt:
+    assert can_convert(model, converter)
+    raise NotImplementedError()
+
+
+@can_convert.register
+def can_convert_sympyopt_quadratizepyqubo(model: SympyOpt, converter: QuadratizePyqubo) -> bool:
+    return model.is_hobo()
+
+
 # MakeMax
 
 
@@ -310,6 +328,24 @@ def can_convert_sympyopt_removeconstraint(model: SympyOpt, converter: RemoveCons
     if converter.is_regexp:
         return True
     return converter.name in model.constraints
+
+
+# RemoveTrivialConstraints
+
+
+@convert.register
+def convert_sympyopt_removetrivialConstraints(
+    model: SympyOpt, converter: RemoveTrivialConstraints
+) -> SympyOpt:
+    assert can_convert(model, converter)
+    raise NotImplementedError()
+
+
+@can_convert.register
+def can_convert_sympyopt_removetrivialConstraints(
+    model: SympyOpt, converter: RemoveTrivialConstraints
+) -> bool:
+    return True
 
 
 # general commands for VarReplace
@@ -483,6 +519,20 @@ def can_convert_sympyopt_varbinary(model: SympyOpt, converter: VarBinary) -> boo
     return _can_convert_int(model, converter.varname)
 
 
+# VarPracticalBinary
+
+
+@convert.register
+def convert_sympyopt_varpracticalbinary(model: SympyOpt, converter: VarPracticalBinary) -> SympyOpt:
+    assert can_convert(model, converter)
+    raise NotImplementedError()
+
+
+@can_convert.register
+def can_convert_sympyopt_varpracticalbinary(model: SympyOpt, converter: VarPracticalBinary) -> bool:
+    raise NotImplementedError()
+
+
 # TrivialIntToBit:
 
 # checks if variables can be converted according to TrivialIntToBit (lb <= y <=
@@ -578,3 +628,15 @@ def can_convert_sympyopt_bittospin(model: SympyOpt, converter: BitToSpin) -> boo
     if converter.is_regexp:
         return True
     return _can_convert_bittospin_sing(model, converter.varname)
+
+
+#  SpinToBit
+@convert.register
+def convert_sympyopt_spintobit(model: SympyOpt, converter: SpinToBit) -> SympyOpt:
+    assert can_convert(model, converter)
+    raise NotImplementedError()
+
+
+@can_convert.register
+def can_convert_sympyopt_spintobit(model: SympyOpt, converter: SpinToBit) -> bool:
+    raise NotImplementedError()

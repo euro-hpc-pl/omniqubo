@@ -17,8 +17,10 @@ nan
 nonnegative
 np
 omniqubo
+pyqubo
 quadratically
 quadratization
+quadratize
 satisfiable
 sympy
 transpile

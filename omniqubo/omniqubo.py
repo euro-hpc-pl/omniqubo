@@ -1,6 +1,5 @@
 from copy import deepcopy
 from typing import List
-from warnings import warn
 
 from pandas.core.frame import DataFrame
 
@@ -8,8 +7,22 @@ from .constants import DEFAULT_PENALTY_VALUE
 from .converters.converter import ConverterAbs, convert, interpret
 from .converters.eq_to_objective import EqToObj
 from .converters.ineq_to_eq import IneqToEq
-from .converters.simple_manipulation import MakeMax, MakeMin, RemoveConstraint, SetIntVarBounds
-from .converters.varreplace import BitToSpin, TrivialIntToBit, VarBinary, VarOneHot
+from .converters.quadratize import QuadratizePyqubo
+from .converters.simple_manipulation import (
+    MakeMax,
+    MakeMin,
+    RemoveConstraint,
+    RemoveTrivialConstraints,
+    SetIntVarBounds,
+)
+from .converters.varreplace import (
+    BitToSpin,
+    SpinToBit,
+    TrivialIntToBit,
+    VarBinary,
+    VarOneHot,
+    VarPracticalBinary,
+)
 from .model import ModelAbs
 from .models.sympyopt.sympyopt import SympyOpt
 from .models.sympyopt.transpiler.sympyopt_to_bqm import SympyOptToDimod
@@ -92,7 +105,7 @@ class Omniqubo:
         :param quadratization_strength: penalty used in quadratization.
         """
         self.to_hobo(penalty)
-        warn("Quadratization not implemented yet - requires QIP as input to Omniqubo")
+        self.quadratize(quadratization_strength)
         return self.model
 
     def to_hobo(self, penalty: float) -> ModelAbs:
@@ -110,6 +123,7 @@ class Omniqubo:
         self.ineq_to_eq(".*")
         self.eq_to_obj(".*", penalty=penalty)
         self.int_to_bits(".*", mode="binary")
+        self.spin_to_bit(".*")
         return self.model
 
     def export(self, mode: str):
@@ -127,6 +141,18 @@ class Omniqubo:
                 return SympyOptToDimod().transpile(self.model)
         else:
             raise ValueError(f"Unknown mode {mode}")  # pragma: no cover
+
+    def quadratize(self, quadratization_strength: float) -> ModelAbs:
+        """Quadratize HOBO using pyqubo package
+
+        strength needs to be sufficiently big positive number in order to
+        produce equivalent problem.
+
+        :param quadratization_strength: the strength of the reduction constraint
+        :return: a resulting QUBO
+        """
+        self.convert(QuadratizePyqubo(quadratization_strength))
+        return self.model
 
     def make_max(self) -> ModelAbs:
         """Transform the model into maximization problem
@@ -172,6 +198,23 @@ class Omniqubo:
         self.convert(RemoveConstraint(names, is_regexp, check_constraints))
         return self.model
 
+    def rm_trivial_constraints(self, names: str, is_regexp: bool = True) -> ModelAbs:
+        """Remove trivial constraints of given name
+
+        If is_regexp is True, then names is considered to be a regular
+        expression with convention from re package. Otherwise, converter will
+        look for the constraint with such name explicitly.
+
+        Inequality P(x) <= Q(x) is removed if max P(x) <= min Q(x), similarly for
+        >= inequality.
+
+        :param names: names of the remove constraints
+        :param is_regexp: specifies if names should be treated as regular expression
+        :return: updated model
+        """
+        self.convert(RemoveTrivialConstraints(names, is_regexp))
+        return self.model
+
     def eq_to_obj(self, names: str, is_regexp: bool = True, penalty: float = None) -> ModelAbs:
         """Shift equality constraints to objective function
 
@@ -212,7 +255,7 @@ class Omniqubo:
         return self.model
 
     def int_to_bits(
-        self, names: str, mode: str, is_regexp: bool = True, trivial_conv: bool = True
+        self, names: str, mode: str, is_regexp: bool = True, trivial_conv: bool = True, **kwargs
     ) -> ModelAbs:
         """Convert integer variables to expression over bits
 
@@ -238,6 +281,8 @@ class Omniqubo:
             self.convert(VarOneHot(names, is_regexp))
         elif mode == "binary":
             self.convert(VarBinary(names, is_regexp))
+        elif mode == "practical-binary":
+            self.convert(VarPracticalBinary(names, is_regexp, ub=kwargs["ub"]))
         else:
             raise ValueError("Uknown mode {mode}")  # pragma: no cover
         return self.model
@@ -272,6 +317,23 @@ class Omniqubo:
         :return: updated model
         """
         self.convert(BitToSpin(names, is_regexp, reversed))
+        return self.model
+
+    def spin_to_bit(self, names: str, is_regexp: bool = True, reversed: bool = False) -> ModelAbs:
+        """Convert spin variables to bit variables
+
+        If is_regexp is True, then names is considered to be a regular
+        expression with convention from re package. Otherwise, converter will
+        look for variables with such name explicitly. if reversed is False,
+        then s <- 1-2*b formula is used, where b is bit and s is spin.
+        Otherwise, s <- 2b-1 is used.
+
+        :param names: names of the binary variables
+        :param is_regexp: specifies if names should be treated as regular expression
+        :param reversed: spin conversion method
+        :return: updated model
+        """
+        self.convert(SpinToBit(names, is_regexp, reversed))
         return self.model
 
     def is_qubo(self) -> bool:
