@@ -21,6 +21,7 @@ from omniqubo.converters.simple_manipulation import (
 from omniqubo.converters.utils import INTER_STR_SEP
 from omniqubo.converters.varreplace import (
     BitToSpin,
+    IntSetValue,
     ReplaceVarWithEq,
     SpinToBit,
     TrivialIntToBit,
@@ -667,4 +668,16 @@ def convert_sympyopt_replacevarwitheq(model: SympyOpt, converter: ReplaceVarWith
 
 @can_convert.register
 def can_convert_sympyopt_replacevarwitheq(model: SympyOpt, converter: ReplaceVarWithEq) -> bool:
+    raise NotImplementedError()
+
+
+#  IntSetValue
+@convert.register
+def convert_sympyopt_intsetvalue(model: SympyOpt, converter: IntSetValue) -> SympyOpt:
+    assert can_convert(model, converter)
+    raise NotImplementedError()
+
+
+@can_convert.register
+def can_convert_sympyopt_intsetvalue(model: SympyOpt, converter: IntSetValue) -> bool:
     raise NotImplementedError()

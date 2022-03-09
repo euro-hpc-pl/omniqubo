@@ -18,6 +18,7 @@ from .converters.simple_manipulation import (
 )
 from .converters.varreplace import (
     BitToSpin,
+    IntSetValue,
     ReplaceVarWithEq,
     SpinToBit,
     TrivialIntToBit,
@@ -296,6 +297,21 @@ class Omniqubo:
             raise ValueError("Uknown mode {mode}")  # pragma: no cover
         return self.model
 
+    def int_to_value(self, names: str, value: int, is_regexp: bool = True) -> ModelAbs:
+        """Set value to a variable
+
+        Replaces each occurrence of the variable with the provided value. If
+        is_regexp is set to True, then all binary variables are replaced. The
+        value must be an integer within bounds of the variable.
+
+        :param names: names of converted variables
+        :param value: value set to the variables
+        :param is_regexp: specifies if names should be treated as regular expression
+        :return: updated model
+        """
+        self.convert(IntSetValue(names, is_regexp, value))
+        return self.model
+
     def replace_var_with_eq(
         self, names: str, replace_scheme: Callable, is_regexp: bool = True
     ) -> ModelAbs:
@@ -313,9 +329,8 @@ class Omniqubo:
         :param varname: the replaced variable
         :param replace_scheme: a function which provides constraint name to be
             used
-        :param is_regexp: flag deciding if varname is regular expression
-        for a given variable.
-
+        :param is_regexp: specifies if names should be treated as regular
+            expression
         :return: updated model
         """
         self.convert(ReplaceVarWithEq(names, is_regexp, replace_scheme))
@@ -336,8 +351,9 @@ class Omniqubo:
         [1] Papadimitriou, Christos H., and Kenneth Steiglitz. Combinatorial
         optimization: algorithms and complexity. Courier Corporation, 1998.
 
-        :param name: the name of the removed model
-        :param is_regexp: flag deciding if name is regular expression
+        :param names: the name of the removed model
+        :param is_regexp: specifies if names should be treated as regular
+            expression
         :param lb: the lower bound, defaults to None
         :param ub: the upper bound, defaults to None
         """

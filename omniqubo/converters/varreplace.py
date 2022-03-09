@@ -216,6 +216,28 @@ def interpret_spintobit(samples: DataFrame, converter: SpinToBit) -> DataFrame:
     return samples
 
 
+class IntSetValue(VarReplace):
+    """Set value to a variable
+
+    Replaces each occurrence of the variable with the provided value. If
+    is_regexp is set to True, then all binary variables are replaced. The value
+    must be within bounds of the variable.
+
+    :param varname: the replaced variable
+    :param is_regexp: flag deciding if varname is regular expression
+    :param value: the new value of the integers
+    """
+
+    def __init__(self, varname: str, is_regexp: bool, value: int) -> None:
+        super().__init__(varname, is_regexp)
+        self.value = value
+
+
+@interpret.register
+def interpret_intsetvalue(samples: DataFrame, converter: IntSetValue) -> DataFrame:
+    raise NotImplementedError()
+
+
 class ReplaceVarWithEq(VarReplace):
     """Replace a variable with expression based on a given constraint
 
