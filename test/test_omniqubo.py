@@ -132,7 +132,7 @@ class TestOmniqubo:
         omniqubo = Omniqubo(mdl)
         omniqubo.rm_constraints(".*")
 
-        Q, offset = omniqubo.export("bqm").to_qubo()
+        Q, offset = omniqubo.export("dimod_bqm").to_qubo()
         df = ExactSolver().sample_qubo(Q)
         samples = omniqubo.interpret(dimod_import(df))
         assert samples.shape[0] == 2 ** 3
@@ -143,7 +143,7 @@ class TestOmniqubo:
         omniqubo = Omniqubo(mdl)
         omniqubo.rm_constraints(".*", check_constraints=True)
 
-        Q, offset = omniqubo.export("bqm").to_qubo()
+        Q, offset = omniqubo.export("dimod_bqm").to_qubo()
         df = ExactSolver().sample_qubo(Q)
         samples = omniqubo.interpret(dimod_import(df))
         assert samples.shape[0] == 2 ** 3

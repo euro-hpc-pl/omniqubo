@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from .model import ModelAbs
 
 
-class TransiplerAbs(ABC):
+class TranspilerAbs(ABC):
     """Abstract Transpiler class
 
     Transpilers are transforming the optimization models written in different

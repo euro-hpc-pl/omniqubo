@@ -1,3 +1,5 @@
+from typing import Callable
+
 import numpy as np
 from pandas import DataFrame
 
@@ -212,3 +214,33 @@ def interpret_spintobit(samples: DataFrame, converter: SpinToBit) -> DataFrame:
         else:
             samples[name] = 1 + 2 * samples.pop(name_new)
     return samples
+
+
+class ReplaceVarWithEq(VarReplace):
+    """Replace a variable with expression based on a given constraint
+
+    Given a equality constraint of the form a*x+P(y) == R(z) and variable x,
+    removes x and replaces each occurrence of x with (R(z)-P(y))/a, provided z, y
+    are sets of variables not including x. This operation is always correct if x
+    is not bounded, otherwise this may lead to nonequivalent model. Constraint
+    is removed after being used.
+
+    This operation may result in increasing or reducing number of qubits
+    depending on the used scheme.
+
+    :param varname: the replaced variable
+    :param is_regexp: flag deciding if varname is regular expression
+    :param replace_scheme: a function which provides constraint name to be used
+        for a given variable.
+    """
+
+    def __init__(self, varname: str, is_regexp: bool, replace_scheme: Callable) -> None:
+        # theoretically replace_scheme could be a dict, but then it will not be
+        # extendible to larger models
+        self.replace_scheme = replace_scheme
+        super().__init__(varname, is_regexp)
+
+
+@interpret.register
+def interpret_replacevarwitheq(samples: DataFrame, converter: ReplaceVarWithEq) -> DataFrame:
+    raise NotImplementedError()

@@ -6,13 +6,13 @@ from docplex.mp.linear import ConstantExpr, LinearExpr, MonomialExpr, ZeroExpr
 from docplex.mp.model import Model
 from docplex.mp.quad import QuadExpr
 
-from omniqubo.transpiler import TransiplerAbs
+from omniqubo.transpiler import TranspilerAbs
 
 from ..constraints import INEQ_GEQ_SENSE, ConstraintEq, ConstraintIneq
 from ..sympyopt import SympyOpt
 
 
-class DocplexToSympyopt(TransiplerAbs):
+class DocplexToSympyopt(TranspilerAbs):
     """Transpiler for transforming Docplex model into SymptOpt model
 
     Transpiler can transform any quadratic program with quadratic constraints,

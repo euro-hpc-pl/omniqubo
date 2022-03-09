@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import List
+from typing import Callable, List
 
 from pandas.core.frame import DataFrame
 
@@ -13,10 +13,12 @@ from .converters.simple_manipulation import (
     MakeMin,
     RemoveConstraint,
     RemoveTrivialConstraints,
+    SetILPIntVarBounds,
     SetIntVarBounds,
 )
 from .converters.varreplace import (
     BitToSpin,
+    ReplaceVarWithEq,
     SpinToBit,
     TrivialIntToBit,
     VarBinary,
@@ -25,7 +27,8 @@ from .converters.varreplace import (
 )
 from .model import ModelAbs
 from .models.sympyopt.sympyopt import SympyOpt
-from .models.sympyopt.transpiler.sympyopt_to_bqm import SympyOptToDimod
+from .models.sympyopt.transpiler.sympyopt_to_dimod import SympyOptToDimod
+from .models.sympyopt.transpiler.sympyopt_to_qiskit import SympyOptToQiskit
 from .models.sympyopt.transpiler.transpiler import transpile
 
 
@@ -129,16 +132,22 @@ class Omniqubo:
     def export(self, mode: str):
         """Export the model
 
-        Export the model in a form specified by mode, for example
-        BinaryQuadraticModel from dimod.
+        Export the model in a form specified by mode. Accepted values are:
+        "dimod_bqm" for dimod.BinaryQuadraticModel, "dimod_cqm" for
+        dimod.ConstrainedQuadraticModel, "qiskit_qp" for
+        qiskit_optimization.QuadraticModel and "qiskit_pso" for
+        qiskit.opflow.PauliSumOp.
 
         :param mode: specifies the type of the returned model
         :raises ValueError: if unknown mode
         :return: return the transpiled model
         """
-        if mode == "bqm":
+        if mode == "dimod_bqm" or mode == "dimod_cqm":
             if isinstance(self.model, SympyOpt):  # HACK
-                return SympyOptToDimod().transpile(self.model)
+                return SympyOptToDimod(mode).transpile(self.model)
+        elif mode == "qiskit_qp" or mode == "qiski_pso":
+            if isinstance(self.model, SympyOpt):  # HACK
+                return SympyOptToQiskit(mode).transpile(self.model)
         else:
             raise ValueError(f"Unknown mode {mode}")  # pragma: no cover
 
@@ -287,19 +296,55 @@ class Omniqubo:
             raise ValueError("Uknown mode {mode}")  # pragma: no cover
         return self.model
 
+    def replace_var_with_eq(
+        self, names: str, replace_scheme: Callable, is_regexp: bool = True
+    ) -> ModelAbs:
+        """Replace a variable with expression based on a given constraint
+
+        Given a equality constraint of the form a*x+P(y) == R(z) and variable x,
+        removes x and replaces each occurrence of x with (R(z)-P(y))/a, provided z, y
+        are sets of variables not including x. This operation is always correct if x
+        is not bounded, otherwise this may lead to nonequivalent model. Constraint
+        is removed after being used.
+
+        This operation may result in increasing or reducing number of qubits
+        depending on the used scheme.
+
+        :param varname: the replaced variable
+        :param replace_scheme: a function which provides constraint name to be
+            used
+        :param is_regexp: flag deciding if varname is regular expression
+        for a given variable.
+
+        :return: updated model
+        """
+        self.convert(ReplaceVarWithEq(names, is_regexp, replace_scheme))
+        return self.model
+
     def set_int_bounds(self, names: str, lb: int, ub: int, is_regexp: bool = True) -> ModelAbs:
         """Set bounds for the variable if it is unbounded
 
         If lb or ub is None, then the bound is not changed. If is_regexp is set
         to True, then for all variables with matching names bounds will be
-        updated. lb and ub cannot be None simultaneously.
+        updated.
+
+        If both lb and ub are None simultaneously, a default bound for variably
+        |y| n^3(m+2)M^(4m+12) and -n^3(m+2)M^(4m+12), where n is number of
+        variables, m is number of constraints and M is the maximum parameter
+        value is used [1]. In this case it is required that model is ILP.
+
+        [1] Papadimitriou, Christos H., and Kenneth Steiglitz. Combinatorial
+        optimization: algorithms and complexity. Courier Corporation, 1998.
 
         :param name: the name of the removed model
         :param is_regexp: flag deciding if name is regular expression
         :param lb: the lower bound, defaults to None
         :param ub: the upper bound, defaults to None
         """
-        self.convert(SetIntVarBounds(names, is_regexp, lb, ub))
+        if lb is not None or ub is not None:
+            self.convert(SetIntVarBounds(names, is_regexp, lb, ub))
+        else:
+            self.convert(SetILPIntVarBounds(names, is_regexp))
         return self.model
 
     def bit_to_spin(self, names: str, is_regexp: bool = True, reversed: bool = False) -> ModelAbs:

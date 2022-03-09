@@ -24,7 +24,7 @@ class TestUseCases:
         assert omniqubo.is_qubo()
 
         # export the QUBO and solve it with third-party solver
-        bqm = omniqubo.export("bqm")
+        bqm = omniqubo.export("dimod_bqm")
         Q, offset = bqm.to_qubo()
         df = ExactSolver().sample_qubo(Q)
 
@@ -59,7 +59,7 @@ class TestUseCases:
 
         assert omniqubo.is_ising(locality=2)
 
-        bqm = omniqubo.export("bqm")
+        bqm = omniqubo.export("dimod_bqm")
         h, J, offset = bqm.to_ising()
         df = ExactSolver().sample_ising(h, J)
         samples = omniqubo.interpret(dimod_import(df))
@@ -97,7 +97,7 @@ class TestUseCases:
         assert omniqubo.is_qubo()
 
         # export the QUBO and solve it with third-party solver
-        bqm = omniqubo.export("bqm")
+        bqm = omniqubo.export("dimod_bqm")
         Q, offset = bqm.to_qubo()
         df = ExactSolver().sample_qubo(Q)
 
@@ -139,7 +139,7 @@ class TestUseCases:
         assert omniqubo.is_qubo()
 
         # export the QUBO and solve it with third-party solver
-        bqm = omniqubo.export("bqm")
+        bqm = omniqubo.export("dimod_bqm")
         Q, offset = bqm.to_qubo()
         df = ExactSolver().sample_qubo(Q)
 

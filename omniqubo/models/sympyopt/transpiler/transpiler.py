@@ -1,10 +1,17 @@
 from copy import deepcopy
 from typing import Union
 
+from dimod import BinaryQuadraticModel, ConstrainedQuadraticModel
 from docplex.mp.model import Model
+from pulp import LpProblem
+from qiskit.opflow import PauliSumOp
+from qiskit_optimization import QuadraticProgram
 
 from ..sympyopt import SympyOpt
+from .dimod_to_sympyopt import DimodToSympyopt
 from .docplex_to_sympyopt import DocplexToSympyopt
+from .pulp_to_sympyopt import PulpToSympyopt
+from .qiskit_to_sympyopt import QiskitToSympyopt
 
 
 def transpile(model: Union[SympyOpt, Model]) -> SympyOpt:
@@ -20,5 +27,11 @@ def transpile(model: Union[SympyOpt, Model]) -> SympyOpt:
         return deepcopy(model)
     elif isinstance(model, Model):
         return DocplexToSympyopt().transpile(model)
+    elif isinstance(model, LpProblem):
+        return PulpToSympyopt().transpile(model)
+    elif isinstance(model, (QuadraticProgram, PauliSumOp)):
+        return QiskitToSympyopt().transpile(model)
+    elif isinstance(model, (BinaryQuadraticModel, ConstrainedQuadraticModel)):
+        return DimodToSympyopt().transpile(model)
     else:
         raise ValueError(f"Unknown model type: {type(model)}")

@@ -2,7 +2,7 @@ from dimod import BinaryQuadraticModel
 
 from omniqubo.models.sympyopt import SympyOpt
 from omniqubo.models.sympyopt.constraints import ConstraintEq
-from omniqubo.models.sympyopt.transpiler.sympyopt_to_bqm import SympyOptToDimod
+from omniqubo.models.sympyopt.transpiler.sympyopt_to_dimod import SympyOptToDimod
 
 
 class TestSympyOptToDimod:

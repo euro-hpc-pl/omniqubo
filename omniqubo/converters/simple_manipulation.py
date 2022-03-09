@@ -77,7 +77,7 @@ class SetIntVarBounds(ConverterAbs):
     to True, then for all variables with matching names bounds will be
     updated. lb and ub cannot be None simultaneously.
 
-    :param name: the name of the removed model
+    :param name: the name of the updated variable
     :param is_regexp: flag deciding if name is regular expression
     :param lb: the lower bound, defaults to None
     :param ub: the upper bound, defaults to None
@@ -96,6 +96,34 @@ class SetIntVarBounds(ConverterAbs):
 
 @interpret.register
 def interpret_setintvarbounds(samples: DataFrame, converter: SetIntVarBounds) -> DataFrame:
+    return samples
+
+
+class SetILPIntVarBounds(ConverterAbs):
+    """Set sufficient bound for the variable if it is unbounded
+
+    Provided model is ILP, upper and lower bounds of variable with not specified
+    bounds is set to n^3(m+2)M^(4m+12) and -n^3(m+2)M^(4m+12), where n is number
+    of variables, m is number of constraints and M is the maximum parameter
+    value [1]. Note that the cost in qubits may be very high, and usually better
+    bounds can be derived from the model. If is_regexp is set to True, then for
+    all variables with matching names bounds will be updated.
+
+    [1] Papadimitriou, Christos H., and Kenneth Steiglitz. Combinatorial
+    optimization: algorithms and complexity. Courier Corporation, 1998.
+
+    :param name: the name of the updated variables
+    :param is_regexp: flag deciding if name is regular expression
+    """
+
+    def __init__(self, name: str, is_regexp: bool) -> None:
+        self.varname = name
+        self.is_regexp = is_regexp
+        super().__init__()
+
+
+@interpret.register
+def interpret_setilpintvarbounds(samples: DataFrame, converter: SetILPIntVarBounds) -> DataFrame:
     return samples
 
 

@@ -15,11 +15,13 @@ from omniqubo.converters.simple_manipulation import (
     MakeMin,
     RemoveConstraint,
     RemoveTrivialConstraints,
+    SetILPIntVarBounds,
     SetIntVarBounds,
 )
 from omniqubo.converters.utils import INTER_STR_SEP
 from omniqubo.converters.varreplace import (
     BitToSpin,
+    ReplaceVarWithEq,
     SpinToBit,
     TrivialIntToBit,
     VarBinary,
@@ -427,6 +429,20 @@ def can_convert_sympyopt_setintvarbounds(model: SympyOpt, converter: SetIntVarBo
     return _can_convert_intsetbounds_sing(model, converter, converter.varname)
 
 
+# SetILPIntVarBounds
+
+
+@convert.register
+def convert_sympyopt_setilpintvarbounds(model: SympyOpt, converter: SetILPIntVarBounds) -> SympyOpt:
+    assert can_convert(model, converter)
+    raise NotImplementedError()
+
+
+@can_convert.register
+def can_convert_sympyopt_setilpintvarbounds(model: SympyOpt, converter: SetILPIntVarBounds) -> bool:
+    raise NotImplementedError()
+
+
 # VarOneHot
 
 # outputs expression and adds constraint for one-hot encoding
@@ -639,4 +655,16 @@ def convert_sympyopt_spintobit(model: SympyOpt, converter: SpinToBit) -> SympyOp
 
 @can_convert.register
 def can_convert_sympyopt_spintobit(model: SympyOpt, converter: SpinToBit) -> bool:
+    raise NotImplementedError()
+
+
+#  ReplaceVarWithEq
+@convert.register
+def convert_sympyopt_replacevarwitheq(model: SympyOpt, converter: ReplaceVarWithEq) -> SympyOpt:
+    assert can_convert(model, converter)
+    raise NotImplementedError()
+
+
+@can_convert.register
+def can_convert_sympyopt_replacevarwitheq(model: SympyOpt, converter: ReplaceVarWithEq) -> bool:
     raise NotImplementedError()
