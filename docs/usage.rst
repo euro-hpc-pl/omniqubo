@@ -19,6 +19,3 @@ To install omniqubo, first install it using pip
     <class 'omniqubo.omniqubo.Omniqubo'>
 
 
-i funkcja
-
-.. autofunction:: omniqubo.models.sympyopt.converter.abs_converter.ConverterSympyOptAbs.__init__
