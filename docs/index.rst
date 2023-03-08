@@ -21,4 +21,4 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-``Check`` out :doc:`usage` - it is very `important!` Especially :ref:`install <installation>`
+``Check`` out :doc:`usage` - it is very *important!* Especially :ref:`install <installation>`

@@ -13,7 +13,7 @@ from omniqubo.models.sympyopt.constraints import ConstraintEq
 from omniqubo.models.sympyopt.converters import convert
 from omniqubo.models.sympyopt.sympyopt import SympyOpt
 from omniqubo.models.sympyopt.transpiler.sympyopt_to_dimod import SympyOptToDimod
-from omniqubo.sampleset.dimod_import import dimod_import
+from omniqubo.sampleset._dimod_import import dimod_import
 
 
 class TestOneHot:
