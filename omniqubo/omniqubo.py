@@ -344,7 +344,7 @@ class Omniqubo:
         updated.
 
         If both lb and ub are None simultaneously, a default bound for variably
-        |y| n^3(m+2)M^(4m+12) and -n^3(m+2)M^(4m+12), where n is number of
+        $|y| n^3(m+2)M^(4m+12) and -n^3(m+2)M^(4m+12)$, where $n$ is number of
         variables, m is number of constraints and M is the maximum parameter
         value is used [1]. In this case it is required that model is ILP.
 
