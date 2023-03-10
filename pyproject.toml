@@ -73,3 +73,5 @@ spelling-dict = ['en_US']
 disable = "all"
 enable = "C0402, C0403" 
 spelling-private-dict-file = "wordlist.txt"
+
+[tool.setuptools_scm]
